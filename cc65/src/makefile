@@ -1,0 +1,21 @@
+RM_BINARY=rm
+RM_FLAGS=-rf
+
+BUILD_FOLDER=build
+ROM_FOLDER=$(BUILD_FOLDER)/rom
+
+ADDRESS_MODE=ext
+
+FIRMWARE_PROJECTS = blink \
+                    lcd \
+					serial
+
+FIRMWARE_BINARIES=$(FIRMWARE_PROJECTS:%=$(ROM_FOLDER)/%.$(ADDRESS_MODE).bin)
+
+$(ROM_FOLDER)/%.$(ADDRESS_MODE).bin:
+	$(MAKE) -C $(@:$(ROM_FOLDER)/%.$(ADDRESS_MODE).bin=%) ADDRESS_MODE=$(ADDRESS_MODE) all
+
+all: $(FIRMWARE_BINARIES)
+
+clean:
+	$(RM_BINARY) $(RM_FLAGS) $(BUILD_FOLDER)
