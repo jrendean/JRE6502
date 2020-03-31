@@ -1,6 +1,6 @@
 ; Delay subroutines
 
-.export _delay_5us
+;.export _delay_5us
 .export _delay_ms
 
 .segment  "CODE"
@@ -47,25 +47,29 @@ delay_ms_loop1:
 ; duration = 4*a + 3, where "a" is the value in the accumulator
 ; note a value of zero in "a" is treated as 256, not zero!
 ; range is from 7us to 1027us
-;_delay_4us:      ; 6 jsr
-;   tax         ; 2
-;delay_4us_loop:
-;   pha         ; 3
-;   pla         ; 4
-;   nop         ; 2
-;   nop         ; 2
-;   dex         ; 2
-;   bne delay_4us_loop    ; 2/3
-;   rts         ; 6
+_delay_4us:      ; 6 jsr
+   tax         ; 2
+delay_4us_loop:
+   pha         ; 3
+   pla         ; 4
+   nop         ; 2
+   nop         ; 2
+   dex         ; 2
+   bne delay_4us_loop    ; 2/3
+   rts         ; 6
 
 ; ---------------------------------------------------------------------------
 ; Delay ms
 ;
 ;_delay_ms:
+;   phy
+;   phx
 ;   tay
 ;   lda #249                            ; 249*4 + 3 = 999
 ;delay_ms_loop1:   
 ;   jsr _delay_4us
 ;   dey
 ;   bne delay_ms_loop1
+;   plx
+;   ply
 ;   rts

@@ -1,60 +1,54 @@
-
 ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/io.inc65
 ;https://github.com/peternoyes/dodo/tree/master/src
 
-    .import __VIA1_START__
-    .import __VIA2_START__
-    .import __ACIA1_START__
+.import __VIA1_START__
+.import __VIA2_START__
+.import __ACIA1_START__
+.import __ACIA2_START__
 
-VIA1_ORB    = __VIA1_START__
-VIA1_IRB    = __VIA1_START__
-VIA1_ORA    = __VIA1_START__ + 1
-VIA1_IRA    = __VIA1_START__ + 1
-VIA1_DDRB   = __VIA1_START__ + 2
-VIA1_DDRA   = __VIA1_START__ + 3
-VIA1_T1C_L  = __VIA1_START__ + 4
-VIA1_T1C_H  = __VIA1_START__ + 5
-VIA1_T1L_L  = __VIA1_START__ + 6
-VIA1_T1L_H  = __VIA1_START__ + 7
-VIA1_T2C_L  = __VIA1_START__ + 8
-VIA1_T2C_H  = __VIA1_START__ + 9
-VIA1_SR     = __VIA1_START__ + 10
-VIA1_ACR    = __VIA1_START__ + 11
-VIA1_PCR    = __VIA1_START__ + 12
-VIA1_IFR    = __VIA1_START__ + 13
-VIA1_IER    = __VIA1_START__ + 14
-VIA1_ORA_NH = __VIA1_START__ + 15
-VIA1_IRA_NH = __VIA1_START__ + 15
+VIA1_PORTB = __VIA1_START__ + 0
+VIA1_PORTA = __VIA1_START__ + 1
+VIA1_DDRB  = __VIA1_START__ + 2
+VIA1_DDRA  = __VIA1_START__ + 3
+VIA1_T1C_L = __VIA1_START__ + 4
+VIA1_T1C_H = __VIA1_START__ + 5
+VIA1_T1L_L = __VIA1_START__ + 6
+VIA1_T1L_H = __VIA1_START__ + 7
+VIA1_T2C_L = __VIA1_START__ + 8
+VIA1_T2C_H = __VIA1_START__ + 9
+VIA1_SR    = __VIA1_START__ + 10
+VIA1_ACR   = __VIA1_START__ + 11
+VIA1_PCR   = __VIA1_START__ + 12
+VIA1_IFR   = __VIA1_START__ + 13
+VIA1_IER   = __VIA1_START__ + 14
+VIA1_PANH  = __VIA1_START__ + 15
 
-VIA2_ORB    = __VIA2_START__
-VIA2_IRB    = __VIA2_START__
-VIA2_ORA    = __VIA2_START__ + 1
-VIA2_IRA    = __VIA2_START__ + 1
-VIA2_DDRB   = __VIA2_START__ + 2
-VIA2_DDRA   = __VIA2_START__ + 3
-VIA2_T1C_L  = __VIA2_START__ + 4
-VIA2_T1C_H  = __VIA2_START__ + 5
-VIA2_T1L_L  = __VIA2_START__ + 6
-VIA2_T1L_H  = __VIA2_START__ + 7
-VIA2_T2C_L  = __VIA2_START__ + 8
-VIA2_T2C_H  = __VIA2_START__ + 9
-VIA2_SR     = __VIA2_START__ + 10
-VIA2_ACR    = __VIA2_START__ + 11
-VIA2_PCR    = __VIA2_START__ + 12
-VIA2_IFR    = __VIA2_START__ + 13
-VIA2_IER    = __VIA2_START__ + 14
-VIA2_ORA_NH = __VIA2_START__ + 15
-VIA2_IRA_NH = __VIA2_START__ + 15
+VIA2_PORTB = __VIA2_START__ + 0
+VIA2_PORTA = __VIA2_START__ + 1
+VIA2_DDRB  = __VIA2_START__ + 2
+VIA2_DDRA  = __VIA2_START__ + 3
+VIA2_T1C_L = __VIA2_START__ + 4
+VIA2_T1C_H = __VIA2_START__ + 5
+VIA2_T1L_L = __VIA2_START__ + 6
+VIA2_T1L_H = __VIA2_START__ + 7
+VIA2_T2C_L = __VIA2_START__ + 8
+VIA2_T2C_H = __VIA2_START__ + 9
+VIA2_SR    = __VIA2_START__ + 10
+VIA2_ACR   = __VIA2_START__ + 11
+VIA2_PCR   = __VIA2_START__ + 12
+VIA2_IFR   = __VIA2_START__ + 13
+VIA2_IER   = __VIA2_START__ + 14
+VIA2_PANH  = __VIA2_START__ + 15
 
 ; Port bits
-VIA_PA0 = (1 << 0)
-VIA_PA1 = (1 << 1)
-VIA_PA2 = (1 << 2)
-VIA_PA3 = (1 << 3)
-VIA_PA4 = (1 << 4)
-VIA_PA5 = (1 << 5)
-VIA_PA6 = (1 << 6)
-VIA_PA7 = (1 << 7)
+VIA_PA0 = 1 << 0
+VIA_PA1 = 1 << 1
+VIA_PA2 = 1 << 2
+VIA_PA3 = 1 << 3
+VIA_PA4 = 1 << 4
+VIA_PA5 = 1 << 5
+VIA_PA6 = 1 << 6
+VIA_PA7 = 1 << 7
 
 ; Port bits
 VIA_PB0 = 1 << 0
@@ -71,6 +65,12 @@ ACIA1_DATA    = __ACIA1_START__ + $00
 ACIA1_STATUS  = __ACIA1_START__ + $01
 ACIA1_COMMAND = __ACIA1_START__ + $02
 ACIA1_CONTROL = __ACIA1_START__ + $03
+
+
+ACIA2_DATA    = __ACIA2_START__ + $00
+ACIA2_STATUS  = __ACIA2_START__ + $01
+ACIA2_COMMAND = __ACIA2_START__ + $02
+ACIA2_CONTROL = __ACIA2_START__ + $03
 
 ; ACIA control register bit values
 

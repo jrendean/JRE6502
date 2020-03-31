@@ -1,0 +1,310 @@
+.include "lcd.inc"
+.include "zeropage.inc"
+
+.import _delay_ms
+
+.export _lcd_init
+.export _lcd_clear
+.export _lcd_print_string
+.export _lcd_print_char
+.export _lcd_goto
+
+.rodata
+    ;http://forum.6502.org/viewtopic.php?f=4&t=5336&p=64722&hilit=hd44780+memory#p64722
+    row_offsets: .byte $00, $40, $14, $54
+
+.data
+    display_memory: .res 20 * 4, ' ' ; 20 characters, 4 lines
+
+.code
+
+    _lcd_init:
+        pha
+
+        lda #%11111111 ; Set all pins on port B to output
+        sta VIA2_DDRA
+
+        ; wait for startup
+        lda #50
+        jsr _delay_ms
+
+        ; https://en.wikipedia.org/wiki/Hitachi_HD44780_LCD_controller
+        ;3x force to 8bit - 0011 0000 (8bit write)
+        lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
+        jsr cmdwrite8
+        lda #1
+        jsr _delay_ms
+        lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
+        jsr cmdwrite8
+        lda #1
+        jsr _delay_ms
+        lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
+        jsr cmdwrite8
+        lda #1
+        jsr _delay_ms
+        ;set to 4bit - 0010 0000 (8bit write)
+        lda #CMD_FUNCTION_SET
+        jsr cmdwrite8
+        lda #1
+        jsr _delay_ms
+
+        ; Actual initialization
+        lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_4 | FS_NUM_LINES_2 | FS_FONT_5X8)
+        jsr cmdwrite4
+        lda #2
+        jsr _delay_ms 
+        lda #(CMD_DISPLAY_CONTROL | DC_DISPLAY_ON | DC_CURSOR_ON)
+        jsr cmdwrite4
+        lda #2
+        jsr _delay_ms
+        lda #(CMD_ENTRY_MODE_SET | EM_CURSOR_INC | EM_SHIFT_CURSOR)
+        jsr cmdwrite4
+        lda #2
+        jsr _delay_ms
+        jsr _lcd_clear
+        lda #2
+        jsr _delay_ms
+
+        stz lcd_row
+        stz lcd_col
+
+        pla
+        rts
+
+
+    _lcd_clear:
+        pha
+        
+        lda #CMD_CLEAR_DISPLAY
+        jsr cmdwrite4
+        
+        ldx #0 ; col 1
+        ldy #0 ; row 1
+        jsr _lcd_goto
+
+        ldx #(4 * 40 - 1)
+        lda #' '
+    @clear:
+        sta display_memory,x
+        dex
+        bpl @clear
+
+        pla
+        rts
+
+
+    _lcd_print_string:
+        pha
+        phy
+        ldy #0
+    @lcd_print_loop:
+        lda (lcd_out_ptr),y
+        beq @lcd_print_end
+        ;jsr datawrite
+        jsr _lcd_print_char
+        iny
+        jmp @lcd_print_loop
+    @lcd_print_end:
+        ply
+        pla
+        rts
+
+
+
+    _lcd_print_char:
+        pha
+        phx
+        phy
+
+        cmp #$0A
+        beq @newline
+        cmp #$08
+        beq @backspace
+
+        pha
+        jsr datawrite
+        lda lcd_col
+        ldx lcd_row
+
+        beq @l1
+    @l2:
+        clc
+        adc #20
+        dex
+        bne @l2
+
+    @l1:
+        tax
+        pla
+        sta display_memory,x
+        inc lcd_col
+        ldx lcd_col
+        cpx #20
+        beq @newline
+        ply
+        plx
+        pla
+        rts
+
+    @newline:
+        ldy lcd_row
+        cpy #3 ; if row 4 then scroll
+        beq @scroll
+        iny    ; else next row
+        ldx #0 ; column 1
+        jmp @specialchargoto
+    @backspace:
+        ldy lcd_row
+        ldx lcd_col
+        dex
+        bmi @backspaceuprow
+        jmp @specialchargoto
+    @backspaceuprow:
+        dey
+        bmi @gotohome
+        ldx #20 ; column 20
+        jmp @specialchargoto
+    @gotohome:
+        ldx #0
+        ldy #0
+    @specialchargoto:
+        jsr _lcd_goto
+        ply
+        plx
+        pla
+        rts
+
+    @scroll:
+        ldx #0 ; col 1
+        ldy #0 ; row 1
+        jsr _lcd_goto
+    @scroll_line1:
+        lda display_memory + 20,x
+        sta display_memory,x
+        jsr datawrite
+        inx
+        cpx #20
+        bne @scroll_line1
+        ldx #0 ; col 1
+        ldy #1 ; row 2
+        jsr _lcd_goto
+    @scroll_line2:
+        lda display_memory + 40,x
+        sta display_memory + 20,x
+        jsr datawrite
+        inx
+        cpx #20
+        bne @scroll_line2
+        ldx #0 ; col 1
+        ldy #2 ; row 3
+        jsr _lcd_goto
+    @scroll_line3:
+        lda display_memory + 60,x
+        sta display_memory + 40,x
+        jsr datawrite
+        inx
+        cpx #20
+        bne @scroll_line3
+        ldx #0 ; col 1
+        ldy #3 ; row 4
+        jsr _lcd_goto
+    @scroll_line4: 
+        lda #' '
+        sta display_memory + 60,x
+        jsr datawrite
+        inx
+        cpx #20
+        bne @scroll_line4
+        ldx #0 ; col 1
+        ldy #3 ; row 4
+        jsr _lcd_goto
+
+        ply
+        plx
+        pla
+        rts
+
+
+    _lcd_goto:
+        pha
+        
+        stx lcd_col
+        sty lcd_row
+        ;ldy lcd_row
+        lda lcd_col
+        clc
+        adc row_offsets,y
+        adc #CMD_SET_DDRAM_ADDR
+        jsr cmdwrite4
+        
+        pla
+        rts
+
+
+    cmdwrite8:
+        lsr
+        lsr
+        lsr
+        lsr
+
+        AND #$DF
+
+        ora #LCD_EN
+        sta VIA2_ORA
+        ;eor #EN
+        AND #$EF
+        sta VIA2_ORA
+
+        rts
+
+    cmdwrite4:
+        pha ; save A
+
+        lsr ; shift right
+        lsr ; shift right
+        lsr ; shift right
+        lsr ; shift right
+
+        AND #$DF ; 1101 1111 set RS = 0 
+
+        ora #LCD_EN   ; add enable
+        sta VIA2_ORA
+        ;eor #EN
+        AND #$EF  ; remove enable
+        sta VIA2_ORA
+
+        pla    ; restore A
+
+        AND #$DF
+
+        ora #LCD_EN
+        sta VIA2_ORA
+        ;eor #EN
+        AND #$EF
+        sta VIA2_ORA
+
+        rts
+
+    datawrite:
+        pha
+
+        lsr
+        lsr
+        lsr
+        lsr
+
+        ora #(LCD_RS | LCD_EN)
+        sta VIA2_ORA
+        ;eor #EN
+        AND #$EF
+        sta VIA2_ORA
+
+        pla
+
+        ora #(LCD_RS | LCD_EN)
+        sta VIA2_ORA
+        ;eor #EN
+        AND #$EF
+        sta VIA2_ORA
+
+        rts

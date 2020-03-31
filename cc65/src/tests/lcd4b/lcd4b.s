@@ -1,20 +1,28 @@
+    .setcpu "65C02"
     .include "lcd.inc"
-    .include "zeropage.inc"
 
     .import _delay_ms
 
-    .export _lcd_init
-    .export _lcd_print
+    ; define vector
+    .segment "VECTORS" ;defined in firmware.cfg starting at $7FFA
+
+    .word   $EAEA      ; $FFFA-$FFFB - MNI
+    .word   init       ; $FFFC-$FFFD - Reset
+    .word   $EAEA      ; $FFFE-$FFFF - IRQ/BRK
+
 
     ; define code
     .segment "CODE" ; could instead use shortcut .code
 
+EN = %00010000
+RS = %00100000
 
-_lcd_init:
-  pha
-
+init:
+      ;ldx #$ff
+      ;txs
+      
   lda #%11111111 ; Set all pins on port B to output
-  sta VIA1_DDRA
+  sta VIA2_DDRA
 
   ; wait for startup
   lda #50
@@ -58,30 +66,21 @@ _lcd_init:
   lda #2
   jsr _delay_ms
 
-  pla
-  rts
 
-
-_lcd_print:
-  pha
-  phy
-
-  ldy #0
-@lcd_print_loop:
-  lda (lcd_out_ptr),y
-  beq @lcd_print_end
+displaymessage:
+  ldx #0
+@displaymessageloop:
+  lda message,x
+  cmp #0
+  beq loop
   jsr datawrite
-  iny
-  jmp @lcd_print_loop
-@lcd_print_end:
-  ply
-  pla
-  rts
+  inx
+  jmp @displaymessageloop
+
+loop:
+  jmp loop
 
 
-
-EN = %00010000
-RS = %00100000
 
 cmdwrite8:
 
@@ -93,10 +92,10 @@ cmdwrite8:
   AND #$DF
 
   ora #EN
-  sta VIA1_ORA
+  sta VIA2_ORA
   ;eor #EN
   AND #$EF
-  sta VIA1_ORA
+  sta VIA2_ORA
 
   rts
 
@@ -112,20 +111,20 @@ cmdwrite4:
   AND #$DF ; 1101 1111 set RS = 0 
 
   ora #EN   ; add enable
-  sta VIA1_ORA
+  sta VIA2_ORA
   ;eor #EN
   AND #$EF  ; remove enable
-  sta VIA1_ORA
+  sta VIA2_ORA
 
   pla    ; restore A
 
   AND #$DF
 
   ora #EN
-  sta VIA1_ORA
+  sta VIA2_ORA
   ;eor #EN
   AND #$EF
-  sta VIA1_ORA
+  sta VIA2_ORA
 
   rts
 
@@ -138,17 +137,22 @@ datawrite:
   lsr
 
   ora #(RS | EN)
-  sta VIA1_ORA
+  sta VIA2_ORA
   ;eor #EN
   AND #$EF
-  sta VIA1_ORA
+  sta VIA2_ORA
 
   pla
 
   ora #(RS | EN)
-  sta VIA1_ORA
+  sta VIA2_ORA
   ;eor #EN
   AND #$EF
-  sta VIA1_ORA
+  sta VIA2_ORA
 
   rts
+
+    .segment "RODATA"
+
+message:
+  .byte "Line 1 -- 0123456789Line 2 -- 0123456789Line 3 -- 0123456789Line 4 -- 0123456789", $0

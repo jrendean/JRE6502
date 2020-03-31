@@ -1,8 +1,8 @@
 ROM_START = $8000
 RESET_VECTOR = $fffc
 
-PORTB = $6000
-DDRB = $6002
+PORTB = $FE00
+DDRB = $FE02
 
   .org ROM_START
 

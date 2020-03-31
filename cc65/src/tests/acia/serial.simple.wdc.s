@@ -6,7 +6,7 @@
     ; define vector
     .segment "VECTORS" ;defined in firmware.cfg starting at $7FFA
 
-    .word   $EAE       ; $FFFA-$FFFB - MNI
+    .word   $EAEA       ; $FFFA-$FFFB - MNI
     .word   init       ; $FFFC-$FFFD - Reset
     .word   $EAEA      ; $FFFE-$FFFF - IRQ/BRK
 
@@ -17,6 +17,9 @@
 init:
       ldx #$ff
       txs
+
+      ;stz ACIA1_STATUS
+      ;stz ACIA1_COMMAND
 
       lda #(ACIA_PARITY_DISABLE | ACIA_ECHO_DISABLE | ACIA_TX_INT_DISABLE_RTS_LOW | ACIA_RX_INT_DISABLE | ACIA_DTR_LOW)
       sta ACIA1_COMMAND
