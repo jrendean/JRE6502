@@ -1,6 +1,4 @@
 ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/lcd.s65
-.include "io.inc"
-
 
 LCD_ENABLE =  %00001000
 LCD_READ =    %00000100

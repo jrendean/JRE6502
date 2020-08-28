@@ -5,6 +5,11 @@
 .export _led_init, _led_on, _led_off, _led_flash
 
 .code
+
+    ; Initializes the LED
+    ; IN: Nothing
+    ; OUT: Nothing
+    ; ZP: Nothing
     _led_init:
         pha
         lda VIA2_DDRA  ; load existing pin settings
@@ -14,6 +19,10 @@
         pla
         rts
 
+    ; Turns the LED on
+    ; IN: Nothing
+    ; OUT: Nothing
+    ; ZP: Nothing
     _led_on:
         pha
         lda VIA2_PORTA ; load existing values
@@ -22,6 +31,10 @@
         pla
         rts
 
+    ; Turns the LED off
+    ; IN: Nothing
+    ; OUT: Nothing
+    ; ZP: Nothing
     _led_off:
         pha
         lda VIA2_PORTA ; load existing values
@@ -30,6 +43,10 @@
         pla
         rts
 
+    ; Turns the LED on and then off with a 250ms delay in between and before returning
+    ; IN: Nothing
+    ; OUT: Nothing
+    ; ZP: Nothing
     _led_flash:
         jsr _led_on
         lda #$FA

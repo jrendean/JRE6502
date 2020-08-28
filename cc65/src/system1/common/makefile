@@ -2,13 +2,17 @@
 CA65_BINARY=ca65
 CC65_BINARY=cc65
 CL65_BINARY=cl65
+LD65_BINARY=ld65
+AR65_BINARY=ar65
 
 CPU_FLAG=--cpu 65C02
 ARCH_FLAG=-t none
+CLOCK_FLAG=-Dfastclock=$(FASTCLOCK)
 
-CC65_FLAGS=$(CPU_FLAG) $(ARCH_FLAG) -O
-CA65_FLAGS=$(CPU_FLAG)
-CL65_FLAGS=$(ARCH_FLAG)
+CC65_FLAGS=$(CPU_FLAG) $(ARCH_FLAG) $(CLOCK_FLAG) -O
+CA65_FLAGS=$(CPU_FLAG) $(CLOCK_FLAG)
+LD65_FLAGS=
+AR65_FLAGS=r
 
 # MiniPro will be used to upload the ROM
 MINIPRO_BINARY=minipro
@@ -29,10 +33,18 @@ RM_BINARY=rm
 MKDIR_BINARY=mkdir
 MKDIR_FLAGS=-p
 
+# Picocom settings
+PICOCOM_BINARY=picocom
+PICOCOM_FLAGS=-b 19200 -fn --send-cmd 'sz -X'
+
+# Python binary
+PYTHON_BINARY=python
+PYTHON_PROGRAM=../common/loadtrim.py
+
 # Build folder
 BUILD_ROOT=../build
-BUILD_FOLDER=$(BUILD_ROOT)/$(PROJECT_NAME)
-ROM_FOLDER=$(BUILD_ROOT)/rom
+BUILD_FOLDER=$(BUILD_ROOT)/$(BUILD_TYPE)/$(PROJECT_NAME)
+ROM_FOLDER=$(BUILD_ROOT)/$(BUILD_TYPE)
 COMMON_BUILD_FOLDER=$(BUILD_ROOT)/common
 
 # Include folders
@@ -42,6 +54,7 @@ COMMON_SOURCE_FOLDER=$(COMMON_ROOT)/source
 
 # Common objects to be linked
 COMMON_OBJECTS=$(COMMON_DEPS:%=$(COMMON_BUILD_FOLDER)/%)
+ 
 
 # Source files to be compiled
 # ASM_SOURCES = via.s start.s
@@ -53,11 +66,20 @@ OBJECTS = $(ASM_SOURCES:%.s=$(BUILD_FOLDER)/%.o) $(C_SOURCES:%.c=$(BUILD_FOLDER)
 # Default address mode (basic/ext/.. )
 ADDRESS_MODE=basic
 
+# Default clock mode (slow/fast)
+FASTCLOCK=1
+
+ifeq ($(BUILD_TYPE),load)
+# Choose configuration file for firmware (determines addressing mode)
+FIRMWARE_CFG=../common/load.cfg
+# Resulting binary file (ROM to be uploaded)
+FIRMWARE_BINARY=$(ROM_FOLDER)/$(PROJECT_NAME).load.bin
+else
 # Choose configuration file for firmware (determines addressing mode)
 FIRMWARE_CFG=../common/firmware.$(ADDRESS_MODE).cfg
-
 # Resulting binary file (ROM to be uploaded)
 FIRMWARE_BINARY=$(ROM_FOLDER)/$(PROJECT_NAME).$(ADDRESS_MODE).bin
+endif
 
 # Compile assembler sources
 $(BUILD_FOLDER)/%.o: %.s $(FIRMWARE_CFG)
@@ -81,13 +103,31 @@ $(COMMON_BUILD_FOLDER)/%.o: $(COMMON_SOURCE_FOLDER)/%.c $(FIRMWARE_CFG)
 	$(CC65_BINARY) $(CC65_FLAGS) -I $(COMMON_INCLUDE_FOLDER) -o $(@:.o=.s) $<
 	$(CA65_BINARY) $(CA65_FLAGS) -o $@ -l $(@:.o=.lst) $(@:.o=.s)
 
+# Compile common assembler sources for load module (shared objects)
+$(COMMON_BUILD_FOLDER)/%.load.o: $(COMMON_SOURCE_FOLDER)/%.s $(FIRMWARE_CFG)
+	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(COMMON_BUILD_FOLDER)
+	$(CA65_BINARY) $(CA65_FLAGS) -Dload -I $(COMMON_INCLUDE_FOLDER) -o $@ -l $(@:.o=.lst) $<
+
+$(COMMON_LIBRARY): $(COMMON_OBJECTS)
+	$(AR65_BINARY) $(AR65_FLAGS) $(COMMON_LIBRARY) $^
+
+$(COMMON_LOAD_LIBRARY): $(COMMON_LOAD_OBJECTS)
+	$(AR65_BINARY) $(AR65_FLAGS) $(COMMON_LOAD_LIBRARY) $^
+
 # Standard build
 all: $(FIRMWARE_BINARY)
 
 # Linking process
-$(FIRMWARE_BINARY): $(OBJECTS)
+ifeq ($(BUILD_TYPE),load)
+$(FIRMWARE_BINARY): $(OBJECTS) $(COMMON_LOAD_LIBRARY)
 	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(ROM_FOLDER)
-	$(CL65_BINARY) $(CL65_FLAGS) -C $(FIRMWARE_CFG) -m $(FIRMWARE_BINARY:.bin=.map) -o $@ $^
+	$(LD65_BINARY) $(LD65_FLAGS) -C $(FIRMWARE_CFG) -m $(FIRMWARE_BINARY:.bin=.map) -o $(@:.bin=.raw) $^
+	$(PYTHON_BINARY) $(PYTHON_PROGRAM) $(@:.bin=.raw) $@
+else
+$(FIRMWARE_BINARY): $(OBJECTS) $(COMMON_LIBRARY)
+	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(ROM_FOLDER)
+	$(LD65_BINARY) $(LD65_FLAGS) -C $(FIRMWARE_CFG) -m $(FIRMWARE_BINARY:.bin=.map) -o $@ $^
+endif
 
 # Display ROM contents
 test: $(FIRMWARE_BINARY)
@@ -102,9 +142,13 @@ install: $(FIRMWARE_BINARY)
 emu: $(FIRMWARE_BINARY)
 	$(X6502_BINARY) $<
 
+terminal:
+	$(PICOCOM_BINARY) $(PICOCOM_FLAGS) /dev/tty.usbserial-A603YCA5
+
 # Clean generated files
 clean:
 	$(RM_BINARY) -f $(ROM_FOLDER)/*.bin \
+	$(RM_BINARY) -f $(ROM_FOLDER)/*.raw \
 	$(BUILD_FOLDER)/*.o \
 	$(BUILD_FOLDER)/*.lst \
 	$(BUILD_FOLDER)/*.s \
@@ -112,3 +156,4 @@ clean:
 	$(COMMON_BUILD_FOLDER)/*.o \
 	$(COMMON_BUILD_FOLDER)/*.lst \
 	$(COMMON_BUILD_FOLDER)/*.s \
+	$(COMMON_BUILD_FOLDER)/*.lib

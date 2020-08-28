@@ -10,7 +10,9 @@
 .globalzp ptr2
 .globalzp ptr3
 .globalzp ptr4
+
 .globalzp console_out_ptr
 .globalzp lcd_out_ptr
 
-.globalzp spi_sr
+.globalzp DPL
+.globalzp DPH

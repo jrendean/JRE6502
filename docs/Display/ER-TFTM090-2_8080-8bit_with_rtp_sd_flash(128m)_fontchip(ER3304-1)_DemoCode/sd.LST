@@ -1,0 +1,695 @@
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 1   
+
+
+C51 COMPILER V7.04, COMPILATION OF MODULE SD
+OBJECT MODULE PLACED IN sd.OBJ
+COMPILER INVOKED BY: D:\Keil1\C51\BIN\C51.EXE sd.c LARGE DEBUG OBJECTEXTEND
+
+stmt level    source
+
+   1          //----------------------------------------------------------------------
+   2          //EASTRISING TECHNOLOGY CO,.LTD.//
+   3          // Module    : ER-TFT080-2  8 INCH TFT LCD  800*480
+   4          // Lanuage   : C51 Code
+   5          // Create    : JAVEN LIU
+   6          // Date      : 2014-03-19
+   7          // Drive IC  : RA8875   FLASH:W25Q128FV  128M BIT   FONT CHIP: 30L32
+   8          // INTERFACE : 8BIT 8080   
+   9          // MCU           : STC12LE5C60S2     1T MCU
+  10          // MCU VDD       : 3.3V
+  11          // MODULE VDD : 5V OR 3.3V 
+  12          //----------------------------------------------------------------------
+  13          
+  14          //===========================================================
+  15          #include <STC12C5A.H>
+  16          #include <stdio.h>
+  17          #include <intrins.h>
+  18          #include"RA8875.h"
+  19          //=============================================================
+  20          //write one byte to SD
+  21          sbit SD_CLK = P1^7;
+  22          sbit SD_DI  = P1^5;
+  23          sbit SD_DO  = P1^6;
+  24          sbit SD_CS  = P1^4;
+  25          
+  26          #define uchar      unsigned char
+  27          #define uint       unsigned int
+  28          #define ulong      unsigned long
+  29          
+  30          //===========================================================
+  31          
+  32          //===========================================================
+  33          //Buffer
+  34          unsigned char xdata DATA[512];
+  35          
+  36          //===========================================================
+  37          //write one byte to SD
+  38          void SdWrite(unsigned char n)
+  39          {
+  40   1      
+  41   1      unsigned char i;
+  42   1      
+  43   1      for(i=8;i;i--)
+  44   1      {
+  45   2      SD_CLK=0;
+  46   2      SD_DI=(n&0x80);
+  47   2      n<<=1;
+  48   2      SD_CLK=1;
+  49   2      }
+  50   1      SD_DI=1; 
+  51   1      } 
+  52          //===========================================================
+  53          //read one byte
+  54          unsigned char SdRead()
+  55          {
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 2   
+
+  56   1      unsigned char n,i;
+  57   1      for(i=8;i;i--)
+  58   1      {
+  59   2      SD_CLK=0;
+  60   2      SD_CLK=1;
+  61   2      n<<=1;
+  62   2      if(SD_DO) n|=1;
+  63   2      
+  64   2      }
+  65   1      return n;
+  66   1      }
+  67          //============================================================
+  68          //Detecting the response of the SD card
+  69          unsigned char SdResponse()
+  70          {
+  71   1      unsigned char i=0,response;
+  72   1      
+  73   1      while(i<=8)
+  74   1      {
+  75   2      response = SdRead();
+  76   2      if(response==0x00)
+  77   2      break;
+  78   2      if(response==0x01)
+  79   2      break;
+  80   2      i++;
+  81   2      }
+  82   1      return response;
+  83   1      } 
+  84          //================================================================
+  85          //Send commands to the SD card
+  86          void SdCommand(unsigned char command, unsigned long argument, unsigned char CRC)
+  87          {
+  88   1      
+  89   1      SdWrite(command|0x40);
+  90   1      SdWrite(((unsigned char *)&argument)[0]);
+  91   1      SdWrite(((unsigned char *)&argument)[1]);
+  92   1      SdWrite(((unsigned char *)&argument)[2]);
+  93   1      SdWrite(((unsigned char *)&argument)[3]);
+  94   1      SdWrite(CRC);
+  95   1      }
+  96          //================================================================
+  97          //Initialize the SD card
+  98          unsigned char SdInit(void)
+  99          {
+ 100   1      int delay=0, trials=0;
+ 101   1      unsigned char i;
+ 102   1      unsigned char response=0x01;
+ 103   1      
+ 104   1      SD_CS=1;
+ 105   1      for(i=0;i<=9;i++)
+ 106   1      SdWrite(0xff);
+ 107   1      SD_CS=0;
+ 108   1      
+ 109   1      //Send Command 0 to put MMC in SPI mode
+ 110   1      SdCommand(0x00,0,0x95);
+ 111   1      
+ 112   1      
+ 113   1      response=SdResponse();
+ 114   1      
+ 115   1      if(response!=0x01)
+ 116   1      {
+ 117   2      return 0;
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 3   
+
+ 118   2      } 
+ 119   1      
+ 120   1      while(response==0x01)
+ 121   1      {
+ 122   2      SD_CS=1;
+ 123   2      SdWrite(0xff);
+ 124   2      SD_CS=0;
+ 125   2      SdCommand(0x01,0x00ffc000,0xff);
+ 126   2      response=SdResponse();
+ 127   2      } 
+ 128   1      
+ 129   1      SD_CS=1;
+ 130   1      SdWrite(0xff);
+ 131   1      return 1; 
+ 132   1      }
+ 133          //================================================================
+ 134          //Specify the address to write  the SD card data, a maximum of 512 bytes
+ 135          unsigned char SdWriteBlock(unsigned char *Block, unsigned long address,int len)
+ 136          {
+ 137   1      unsigned int count;
+ 138   1      unsigned char dataResp;
+ 139   1      //Block size is 512 bytes exactly
+ 140   1      //First Lower SS
+ 141   1      
+ 142   1      SD_CS=0;
+ 143   1      //Then send write command
+ 144   1      SdCommand(0x18,address,0xff);
+ 145   1      
+ 146   1      if(SdResponse()==00)
+ 147   1      {
+ 148   2      SdWrite(0xff);
+ 149   2      SdWrite(0xff);
+ 150   2      SdWrite(0xff);
+ 151   2      //command was a success - now send data
+ 152   2      //start with DATA TOKEN = 0xFE
+ 153   2      SdWrite(0xfe);
+ 154   2      //now send data
+ 155   2      for(count=0;count<len;count++) SdWrite(*Block++);
+ 156   2      
+ 157   2      for(;count<512;count++) SdWrite(0);
+ 158   2      //data block sent - now send checksum
+ 159   2      SdWrite(0xff);
+ 160   2      SdWrite(0xff);
+ 161   2      //Now read in the DATA RESPONSE token
+ 162   2      dataResp=SdRead();
+ 163   2      //Following the DATA RESPONSE token
+ 164   2      //are a number of BUSY bytes
+ 165   2      //a zero byte indicates the MMC is busy
+ 166   2      
+ 167   2      while(SdRead()==0);
+ 168   2      
+ 169   2      dataResp=dataResp&0x0f; //mask the high byte of the DATA RESPONSE token
+ 170   2      SD_CS=1;
+ 171   2      SdWrite(0xff);
+ 172   2      if(dataResp==0x0b)
+ 173   2      {
+ 174   3      //printf("DATA WAS NOT ACCEPTED BY CARD -- CRC ERROR\n");
+ 175   3      return 0;
+ 176   3      }
+ 177   2      if(dataResp==0x05)
+ 178   2      return 1;
+ 179   2      
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 4   
+
+ 180   2      //printf("Invalid data Response token.\n");
+ 181   2      return 0;
+ 182   2      }
+ 183   1      //printf("Command 0x18 (Write) was not received by the MMC.\n");
+ 184   1      return 0;
+ 185   1      }
+ 186          
+ 187          //=======================================================================
+ 188          //Specified address from the SD card to read data, a maximum of 512 bytes
+ 189          unsigned char SdReadBlock(unsigned char *Block, unsigned long address,int len)
+ 190          {
+ 191   1      unsigned int count;
+ 192   1      //Block size is 512 bytes exactly
+ 193   1      //First Lower SS
+ 194   1      
+ 195   1       //printf("MMC_read_block\n");
+ 196   1      
+ 197   1      SD_CS=0;
+ 198   1      //Then send write command
+ 199   1      SdCommand(0x11,address,0xff);
+ 200   1      
+ 201   1      if(SdResponse()==00)
+ 202   1      {
+ 203   2      //command was a success - now send data
+ 204   2      //start with DATA TOKEN = 0xFE
+ 205   2      while(SdRead()!=0xfe);
+ 206   2      
+ 207   2      for(count=0;count<len;count++) *Block++=SdRead(); 
+ 208   2      
+ 209   2      for(;count<512;count++) SdRead();
+ 210   2      
+ 211   2      //data block sent - now send checksum
+ 212   2      SdRead();
+ 213   2      SdRead();
+ 214   2      //Now read in the DATA RESPONSE token
+ 215   2      SD_CS=1;
+ 216   2      SdRead();
+ 217   2      return 1;
+ 218   2      }
+ 219   1       //printf("Command 0x11 (Read) was not received by the MMC.\n");
+ 220   1      return 0;
+ 221   1      }
+ 222          
+ 223          
+ 224          void Display_JPG()///SD card physical address of the first data address initial value
+ 225          { unsigned long jn;  
+ 226   1        unsigned int in;
+ 227   1       // unsigned long AddTemp=314880;///SD card physical address of the first data address initial value  1G C
+             -ARD
+ 228   1        unsigned long AddTemp=290816;///SD card physical address of the first data address initial value    256M
+             - CARD
+ 229   1        unsigned char mn=5;  //Total number of picture
+ 230   1      
+ 231   1              Write_Dir(0x40,0x00);//Set the Graphics mode
+ 232   1              LCD_CmdWrite(0x02);//start write data   
+ 233   1      
+ 234   1              for(;mn!=0;mn--) 
+ 235   1               {      Active_Window(0,799,0,479);
+ 236   2                         MemoryWrite_Position(0,0);   //cursor position
+ 237   2      
+ 238   2                      for(jn=0;jn<1500;jn++)      //A picture information  comprising 1500x512 bytes
+ 239   2                          {
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 5   
+
+ 240   3                          SdReadBlock(DATA,AddTemp+(jn*512),512);   //A picture information  comprising 1500x512 bytes
+ 241   3                          LCD_CmdWrite(0x02);//start data write
+ 242   3                          for(in=0;in<512;in+=1)                   
+ 243   3                                 {   
+ 244   4                                  LCD_DataWrite(DATA[in++]);   
+ 245   4                             }
+ 246   3                           } 
+ 247   2                           AddTemp = AddTemp+((jn+4)*512);         
+ 248   2                               
+ 249   2                              NextStep(); 
+ 250   2              }
+ 251   1                             
+ 252   1      
+ 253   1      
+ 254   1      } 
+ 255           
+ 256          
+ 257          
+ 258          
+ 259          
+ 260          
+ 261          /////////////////////main////////////////////
+ 262          void main(void)
+ 263          {
+ 264   1              uint i;
+ 265   1              P0=0xff;
+ 266   1              P1=0xff;
+ 267   1              P2=0xff;
+ 268   1              P3=0xff;           
+ 269   1              BL_ON=0;  //Backlight on when external signal control
+ 270   1          Delay100ms(5);
+ 271   1      
+ 272   1              //      LCD_Reset(); //RC Reset on board
+ 273   1              LCD_Initial();
+ 274   1              BL_ON=1;  //BACKLIGHT ON
+ 275   1              Write_Dir(0X01,0X80);//display on
+ 276   1      
+ 277   1              while(1)
+ 278   1                      {
+ 279   2                              
+ 280   2                              //////////Resistive Touch Screen  function test
+ 281   2                      
+ 282   2                              Active_Window(0,799,0,479);//Set the working window size
+ 283   2                          Text_Foreground_Color1(color_white);//Set the foreground color
+ 284   2                              Text_Background_Color1(color_blue);//Set the background color
+ 285   2                              Write_Dir(0X8E,0X80);//Began to clear the screen (display window)
+ 286   2                          Chk_Busy();
+ 287   2                              Write_Dir(0x21,0x10);//Select the internal CGROM  ISO/IEC 8859-1.
+ 288   2                              Write_Dir(0x22,0x00);//Full alignment is disable.The text background color . Text don't rotation. 2x zo
+             -om
+ 289   2                              FontWrite_Position(40,200);
+ 290   2                              String("Touch to display the coordinate");
+ 291   2      
+ 292   2                              Write_Dir(0x70,0xB2);//open the touch function, touch the parameter settings
+ 293   2                              Write_Dir(0x71,0x00);//set to 4-wire touch screen
+ 294   2                              Write_Dir(0xf0,0x04);//if use external interrupt, open interruption
+ 295   2                          Write_Dir(0xf1,0x04);//clear INT state      Must be clean TP_interrupt 
+ 296   2                      Write_Dir(0x40,0x00);//if use external interrupt, must set to the drawing mode
+ 297   2                              //Delay100ms(50);
+ 298   2        
+ 299   2      
+ 300   2                      /*      ///////////////////////////////////////External Interrupt Mode
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 6   
+
+ 301   2                              IT0=0;
+ 302   2                              EA=1;
+ 303   2                              EX0=1;
+ 304   2      
+ 305   2                              while(next)
+ 306   2                              {//Write_Dir(0xf1,0x04);//clear INT state      Must be clean TP_interrupt 
+ 307   2                                      if(ts_event.Key_Sta==Key_Down)        //The touch screen is pressed
+ 308   2                                      {       //Write_Dir(0xf0,0x00);
+ 309   2                                              EX0=0;//Close interrupt
+ 310   2                                              Delay10ms(3);
+ 311   2                                              ts_event.Key_Sta=Key_Up;
+ 312   2                                                       
+ 313   2                                              TP();
+ 314   2                                     
+ 315   2                                      }
+ 316   2                                      //Write_Dir(0xf0,0x04);
+ 317   2                              EX0=1;
+ 318   2                              }
+ 319   2                      */      
+ 320   2                              
+ 321   2                              ///////////////////////////////////////Touch Event Detection Modes
+ 322   2                              while(next)
+ 323   2                              {
+ 324   3      
+ 325   3                             Delay10ms(3);
+ 326   3                      
+ 327   3                             if(Touch_Status())
+ 328   3                              {
+ 329   4                                              TP();
+ 330   4                              }
+ 331   3                                 else
+ 332   3                                      {
+ 333   4                                              FontWrite_Position(100,60); 
+ 334   4                                      LCD_CmdWrite(0x02);
+ 335   4                                              String("X = 0000");
+ 336   4                                              FontWrite_Position(100, 140); 
+ 337   4                                              LCD_CmdWrite(0x02);
+ 338   4                                              String("Y = 0000");      
+ 339   4                                      }
+ 340   3                             Write_Dir(0xf1,0x04);//clear INT state      Must be clean TP_interrupt 
+ 341   3                              }
+ 342   2      
+ 343   2                              ////////////////////////////////////////////////////*/
+ 344   2      
+ 345   2                              NextStep();
+ 346   2      
+ 347   2      
+ 348   2                              //full display test
+ 349   2                              Test();
+ 350   2      
+ 351   2      
+ 352   2      /*                      /////The FLASH reading test
+ 353   2                              Active_Window(0,799,0,479);//Set the work window size
+ 354   2                              i=1;
+ 355   2                              while(i<=8)
+ 356   2                                      {       Displaypicture(i);
+ 357   2                                              Delay100ms(5);   
+ 358   2                                              Chk_Busy();
+ 359   2                                              i+=1;
+ 360   2                                              NextStep();
+ 361   2                                      }
+ 362   2      
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 7   
+
+ 363   2      
+ 364   2                              ///////The FLASH image shear
+ 365   2                              CutPictrue(1,0,0,400,150,0,80);
+ 366   2                              Delay100ms(5);
+ 367   2                              NextStep();     
+ 368   2      */      
+ 369   2      
+ 370   2      
+ 371   2                              /////External characters of the functional test
+ 372   2                          Text_Foreground_Color1(color_white);//Set the foreground color
+ 373   2                              Text_Background_Color1(color_black);//Set the background color          
+ 374   2                              Active_Window(0,799,0,479);;//Set the work window size
+ 375   2                              Write_Dir(0X8E,0X80);//Start screen clearing (display window)
+ 376   2                          Chk_Busy();
+ 377   2                              Write_Dir(0x21,0x20);//Select the external character
+ 378   2                              Write_Dir(0x06,0x03);//Set the frequency
+ 379   2                              Write_Dir(0x2E,0x80);//Font Write Type Setting Register Set up 32 x32 character mode     spacing   0 
+ 380   2                              Write_Dir(0x2F,0x81);//Serial Font ROM Setting GT23L32S4W
+ 381   2                              Write_Dir(0x05,0x28);// The waveform 3   2 byte dummy Cycle) 
+ 382   2                          Write_Dir(0x22,0x80);//Full alignment is enable.The text background color . Text don't rotation. 0x 
+             -zoom                
+ 383   2                          Write_Dir(0x29,0x05);//Font Line Distance Setting
+ 384   2              
+ 385   2                              FontWrite_Position(208,45);//Text written to the position
+ 386   2                          Write_Dir(0x40,0x80);//Set the character mode
+ 387   2                          LCD_CmdWrite(0x02);//start write data
+ 388   2                          String("深圳旭日东方科技有限公司");
+ 389   2                      
+ 390   2                              Text_Foreground_Color1(color_red);//Set the foreground color
+ 391   2                              Write_Dir(0x2E,0x01);//Set the characters mode 16 x16 / spacing 1
+ 392   2                          FontWrite_Position(100,90);//Text written to the position
+ 393   2                              String("TEL:755-33503874 FAX:755-33507642");
+ 394   2                              FontWrite_Position(100,120);//Text written to the position
+ 395   2                              String("WWW.BUY-DISPLAY.COM");
+ 396   2                              FontWrite_Position(100,150);//Text written to the position
+ 397   2                              String("E-mail:market@lcd-china.com");
+ 398   2                              FontWrite_Position(100,180);//Text written to the position
+ 399   2                              String("AD:Room 6G,Building A1,Zhujiang Square,Zhongxin Cheng,Longgang District,                      S
+             -henZhen,China.");
+ 400   2                          Write_Dir(0x29,0x00);//Font Line Distance Setting
+ 401   2                          Write_Dir(0x22,0x05);//Full alignment is disable.The text background color . Text don't rotation. 2x
+             - zoom                
+ 402   2                              Text_Foreground_Color1(color_green);//Set the foreground color
+ 403   2                              Write_Dir(0x2E,0x00);//Set the characters mode 16 x16 / spacing 0
+ 404   2                              FontWrite_Position(0x00,250);//Text written to the position
+ 405   2                              String("ER-TFTM080-2，Optional Chinese / English character library,  MicroSD cord,Falsh.Font Support 2/
+             -3/4 times zoom."
+ 406   2                          "     Support8/16-bit 8080/6800 Series bus,Support serial 3/4wire SPI interface,I2C interface.Block 
+             -Transfer Engine (BTE) Supports  with 2D，Geometry Accelerated Graphics Engine,Support DMA Direct Access FLASH。");
+ 407   2                              Write_Dir(0x21,0x00);//Recovery of register
+ 408   2                              Write_Dir(0x2F,0x00);//Recovery of register
+ 409   2      
+ 410   2      
+ 411   2                              ////////////RA8875 internal input character test
+ 412   2                          Text_Foreground_Color1(color_yellow);//Set the foreground color
+ 413   2                          Write_Dir(0x2E,0x01);//Set the characters mode 16 x16 / spacing 1
+ 414   2                          Write_Dir(0x40,0x80);//Set the character mode
+ 415   2                          Write_Dir(0x21,0x10);//Select the internal CGROM  ISO/IEC 8859-1.
+ 416   2                          FontWrite_Position(80,5);//Text written to the position
+ 417   2              
+ 418   2      
+ 419   2                          String("ShenZhen EastRising Technology .;LTD");
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 8   
+
+ 420   2              
+ 421   2                              Delay100ms(2);
+ 422   2                              NextStep();
+ 423   2      
+ 424   2      
+ 425   2                              //////////The cursor function test
+ 426   2                          Write_Dir(0x40,0xE0);//Set the text mode cursor
+ 427   2                          Write_Dir(0x41,0x00);//Close the graphics cursor
+ 428   2                          Write_Dir(0x44,0x1f);//The cursor flashing cycle
+ 429   2                          Write_Dir(0x4e,0x1f);//The cursor size
+ 430   2                          Write_Dir(0x4f,0x1f);//The cursor size
+ 431   2                              Delay100ms(10);
+ 432   2                              NextStep();
+ 433   2                      
+ 434   2                          Write_Dir(0x21,0x00);//Recovery of register
+ 435   2                          Write_Dir(0x40,0x00);//Recovery of register
+ 436   2      
+ 437   2        
+ 438   2                              ////////PWM backlight control test    Need to short  J16 and open J15 on PCB .
+ 439   2                              Write_Dir(0x8b,0x0f);//Backlight brightness adjustment
+ 440   2                              Delay100ms(3);
+ 441   2                              NextStep();
+ 442   2                              Write_Dir(0x8b,0x3f);//Backlight brightness adjustment
+ 443   2                              Delay100ms(3);
+ 444   2                              NextStep();
+ 445   2                              Write_Dir(0x8b,0xff);//Backlight brightness adjustment
+ 446   2                              Delay100ms(3);
+ 447   2                              NextStep();
+ 448   2      
+ 449   2      
+ 450   2                              //clear screen test:   part of the window 
+ 451   2      
+ 452   2                              Write_Dir(0X8E,0X80);//Began to clear the screen (display window)
+ 453   2                              Chk_Busy();             
+ 454   2                              Active_Window(40,300,100,300);//Set the work window size
+ 455   2                              Text_Background_Color1(color_green);//Set the background color
+ 456   2                              Write_Dir(0X8E,0X40);//Set the screen clearing properties window (work window)
+ 457   2                              Write_Dir(0X8E,0XC0);//Began to clear the screen
+ 458   2                              Chk_Busy();
+ 459   2                           
+ 460   2                              Active_Window(300,799,200,479);//Set the work window size
+ 461   2                              Text_Background_Color1(color_cyan);//Set the background color
+ 462   2                              Write_Dir(0X8E,0X40);//Set the screen clearing properties window (work window)
+ 463   2                              Write_Dir(0X8E,0XC0);//Began to clear the screen
+ 464   2                              Chk_Busy();
+ 465   2      
+ 466   2                              /////////Memory write test
+ 467   2                              Write_Dir(0x40,0x00);
+ 468   2                              Active_Window(0,111,0,139);//Set the work window size   
+ 469   2                              MemoryWrite_Position(0,0);//Memory write position
+ 470   2                              LCD_CmdWrite(0x02);//start data write
+ 471   2                              //112X140 dot
+ 472   2                              for(i=0;i<31360;i++)
+ 473   2                              {
+ 474   3                                  LCD_DataWrite(pic[i]);
+ 475   3                                      Chk_Busy();
+ 476   3                          }
+ 477   2                              Delay100ms(3);
+ 478   2                              NextStep();
+ 479   2              
+ 480   2              
+ 481   2                              /////// Geometric pattern drawing test
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 9   
+
+ 482   2                              Text_Background_Color1(color_black);//Set the background color
+ 483   2                              Active_Window(0,799,0,479);;//Set the work window size
+ 484   2                              Write_Dir(0X8E,0X40);//Set clear screen nature ( working window )
+ 485   2                              Write_Dir(0X8E,0XC0);//Began to clear the screen
+ 486   2                              Chk_Busy();
+ 487   2      
+ 488   2                              ///////////Drawing curves
+ 489   2                              Draw_Ellipse(210,120,205,105);
+ 490   2                          Text_Foreground_Color1(color_cyan);//Color Settings
+ 491   2                          Write_Dir(0XA0,0X10);//Setting parameters
+ 492   2                          Write_Dir(0XA0,0X90);//Start drawing
+ 493   2                              Delay10ms(5);
+ 494   2                          Write_Dir(0XA0,0X91);//Start drawing
+ 495   2                              Delay10ms(5);
+ 496   2                          Write_Dir(0XA0,0X92);//Start drawing
+ 497   2                              Delay10ms(5);
+ 498   2                          Write_Dir(0XA0,0X93);//Start drawing
+ 499   2                              Delay10ms(5);
+ 500   2      
+ 501   2                              ////////////drawing oval
+ 502   2                              Draw_Ellipse(210,120,200,100);
+ 503   2                              Text_Foreground_Color1(color_red);//Color Settings
+ 504   2                              Write_Dir(0XA0,0X00);//Setting parameters
+ 505   2                          Write_Dir(0XA0,0X80);//Start drawing
+ 506   2                              Delay10ms(5);
+ 507   2                              Write_Dir(0XA0,0X40);//Set whether filling
+ 508   2                          Write_Dir(0XA0,0XC0);//Start drawing
+ 509   2                              Delay10ms(5);
+ 510   2                              /////////////drawing circle
+ 511   2                              Draw_Circle(600,110,100);
+ 512   2                              Text_Foreground_Color1(color_green);//Color Settings
+ 513   2                              Write_Dir(0X90,0X00);//Setting parameters
+ 514   2                          Write_Dir(0X90,0X40);//Start drawing
+ 515   2                              Delay10ms(10);          
+ 516   2                              Write_Dir(0X90,0X20);//Setting parameters
+ 517   2                          Write_Dir(0X90,0X60);//Start drawing
+ 518   2                              Delay10ms(10);
+ 519   2                              /////////////drawing rectangle
+ 520   2                          Draw_Line(15,225,270,460);
+ 521   2                          Text_Foreground_Color1(color_blue);//Color Settings
+ 522   2                              Write_Dir(0X90,0X10);//Setting parameters
+ 523   2                          Write_Dir(0X90,0X90);//Start drawing
+ 524   2                          Delay10ms(5);
+ 525   2                              Write_Dir(0X90,0X30);//Setting parameters
+ 526   2                          Write_Dir(0X90,0XB0);//Start drawing
+ 527   2                          Delay10ms(5);
+ 528   2                              ///////////drawing triangle
+ 529   2                              Draw_Line(300,420,460,270);
+ 530   2                          Draw_Triangle(540,460);//draw a triangle of three point
+ 531   2                              Text_Foreground_Color1(color_purple);//Color Settings
+ 532   2                          Write_Dir(0X90,0X01);//Setting parameters
+ 533   2                          Write_Dir(0X90,0X81);//Start drawing
+ 534   2                          Delay10ms(5);
+ 535   2                          Write_Dir(0X90,0X21);//Setting parameters
+ 536   2                          Write_Dir(0X90,0XA1);//Start drawing
+ 537   2                          Delay10ms(5);
+ 538   2                              ///////////drawing rounded rectangle
+ 539   2                          Draw_Line(570,780,270,460);
+ 540   2                          Draw_Ellipse(0,0,20,30);//Set Radius
+ 541   2                          Text_Foreground_Color1(color_yellow);//Color Settings
+ 542   2                              Write_Dir(0XA0,0X20);//Set whether filling
+ 543   2                          Write_Dir(0XA0,0XA0);//Start drawing
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 10  
+
+ 544   2                              Delay10ms(5);
+ 545   2                              Write_Dir(0XA0,0X60);//Set whether filling
+ 546   2                          Write_Dir(0XA0,0XE0);//Start drawing
+ 547   2                              Delay10ms(5);
+ 548   2                              ///////////drawing line
+ 549   2                              Draw_Line(0,799,0,0);
+ 550   2                          Text_Foreground_Color1(color_red);//Color Settings
+ 551   2                              Write_Dir(0X90,0X00);//Setting parameters
+ 552   2                          Write_Dir(0X90,0X80);//Start drawing
+ 553   2                              Delay10ms(2);
+ 554   2                              Draw_Line(799,799,0,479);//drawing line
+ 555   2                          Write_Dir(0X90,0X80);//Start drawing
+ 556   2                              Delay10ms(2);
+ 557   2                              Draw_Line(0,799,479,479);//drawing line
+ 558   2                          Write_Dir(0X90,0X80);//Start drawing
+ 559   2                              Delay10ms(2);
+ 560   2                              Draw_Line(0,0,0,479);//drawing line
+ 561   2                          Write_Dir(0X90,0X80);//Start drawing
+ 562   2                              Delay10ms(2);
+ 563   2                              NextStep();
+ 564   2      
+ 565   2      
+ 566   2                              ////////////BTE Color Fill
+ 567   2                              BTE_Size(25,120);
+ 568   2                      Write_Dir(0x51,0xcc);//Raster Settings
+ 569   2                              for(i=0;i<32;i++)
+ 570   2                              {
+ 571   3                                      Text_Foreground_Color(i,0,0);
+ 572   3                                      BTE_Source(0,i*25,0,0);//BTE starting position                                                    
+ 573   3                                  Write_Dir(0x50,0x80);//BET open
+ 574   3                                  Chk_BTE_Busy();
+ 575   3                              
+ 576   3                                      Text_Foreground_Color(0,i*2,0);
+ 577   3                                      BTE_Source(0,i*25,0,120);//BTE starting position                  
+ 578   3                                  Write_Dir(0x50,0x80);//BET open
+ 579   3                                  Chk_BTE_Busy();
+ 580   3                              
+ 581   3                                      Text_Foreground_Color(0,0,i);
+ 582   3                                      BTE_Source(0,i*25,0,240);//BTE starting position                                                          
+ 583   3                                  Write_Dir(0x50,0x80);//BET open
+ 584   3                                  Chk_BTE_Busy();
+ 585   3                              
+ 586   3                                      Text_Foreground_Color(i,i*2,i);
+ 587   3                                  BTE_Source(0,i*25,0,360);//BTE starting position                                                      
+ 588   3                                  Write_Dir(0x50,0x80);//BET open
+ 589   3                                  Chk_BTE_Busy();
+ 590   3                              }
+ 591   2                              Delay100ms(2);
+ 592   2                              NextStep();
+ 593   2      
+ 594   2                              //////////BTE Color Expansion
+ 595   2                          Text_Background_Color1(color_purple);//Set the background color 
+ 596   2                          Text_Foreground_Color1(color_yellow);//Set the foreground color
+ 597   2                          BTE_Source(0,0,0,0);//BTE starting position
+ 598   2                          BTE_Size(120,100);//BTE size setting
+ 599   2                          Write_Dir(0x51,0x78);//Raster setting
+ 600   2                          Write_Dir(0x50,0x80);//BET open
+ 601   2                              Chk_Busy();
+ 602   2                          LCD_CmdWrite(0x02);//start write data
+ 603   2                              for(i=0;i<1500;i++)
+ 604   2                              {
+ 605   3                                  LCD_DataWrite(pic1[i]);
+C51 COMPILER V7.04   SD                                                                    06/12/2014 16:21:13 PAGE 11  
+
+ 606   3                                      Chk_Busy();
+ 607   3                      }
+ 608   2                              Chk_BTE_Busy();
+ 609   2                              Delay100ms(2);
+ 610   2                              NextStep();
+ 611   2      
+ 612   2                              ////////////BTE color expansion moves
+ 613   2                              BTE_Source(0,200,0,0);//BTE starting position
+ 614   2                              BTE_Size(112,85);//BBTE size setting
+ 615   2                              Text_Foreground_Color1(color_purple);//Set the foreground color (background color filter)
+ 616   2                              Write_Dir(0x51,0xc5);//start write data
+ 617   2                              Write_Dir(0x50,0x80);//BET open
+ 618   2                              Delay100ms(5); 
+ 619   2                              NextStep();
+ 620   2      
+ 621   2                              ///////////Scroll function test
+ 622   2                      Scroll_Window(0,111,0,84);      //Specifies scrolling activity area
+ 623   2                              i=0; 
+ 624   2                              while(i++<99){Delay10ms(10); Scroll(i,i);} //Note:  scroll offset value must be less than  scroll sett
+             -ing range
+ 625   2                          while(i-->0){Delay10ms(10); Scroll(i,i);}       
+ 626   2                              while(i++<99){Delay10ms(10); Scroll(i,i);}
+ 627   2                          while(i-->0){Delay10ms(10); Scroll(i,i);}
+ 628   2                              Delay100ms(5);
+ 629   2                              NextStep();
+ 630   2                      
+ 631   2      
+ 632   2      
+ 633   2      
+ 634   2                      SdInit();        
+ 635   2                      Display_JPG();        //SD card  picture
+ 636   2      
+ 637   2                      }
+ 638   1      
+ 639   1      }
+ 640          
+ 641          
+ 642          
+ 643                  
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   5450    ----
+   CONSTANT SIZE    =  33495    ----
+   XDATA SIZE       =    568     112
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

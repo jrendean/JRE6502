@@ -1,13 +1,15 @@
+.include "io.inc"
 .include "lcd.inc"
 .include "zeropage.inc"
 
-.import _delay_ms
+.import _delay_ms, _convert_to_hex
 
 .export _lcd_init
 .export _lcd_clear
 .export _lcd_print_string
 .export _lcd_print_char
 .export _lcd_goto
+.export _lcd_print_hex
 
 ; code from https://github.com/dbuchwald/6502/blob/master/Software/common/source/lcd.s
 ; code from https://github.com/grappendorf/homecomputer-6502/blob/master/firmware/lcd.s65
@@ -21,12 +23,9 @@
     lcd_wordwrap_sources:    .byte 20, 84, 64, 00
     lcd_wordwrap_targets:    .byte 64, 20, 84, 00
 
-.data
-    display_memory: .res 20 * 4, ' ' ; 20 characters, 4 lines
-
 .code
 
-    ; _lcd_init: Initializes the LCD display
+    ; Initializes the LCD display
     ; IN: Nothing
     ; OUT: Nothing
     ; ZP: Nothing
@@ -77,7 +76,7 @@
         rts
 
 
-    ; _lcd_print_string: Prints null terminated string references in ZP pointer "lcd_out_ptr" to LCD
+    ; Prints null terminated string references in ZP pointer "lcd_out_ptr" to LCD
     ; IN: lcd_out_ptr - ZP pointer to null terminated string
     ; OUT: Nothing
     ; ZP: tmp1, tmp2, tmp3 (see write and read)
@@ -99,7 +98,7 @@
         rts                  ; return
 
 
-    ; _lcd_print_char: Prints byte in A to LCD
+    ; Prints byte in A to LCD
     ; IN: A byte to write
     ; OUT: Nothing
     ; ZP: tmp1, tmp2, tmp3 (see write and read)
@@ -112,7 +111,21 @@
         rts                 ; return
 
 
-    ; _lcd_clear: Clears the LCD
+    _lcd_print_hex:
+        pha
+        phx
+        phy
+        jsr _convert_to_hex
+        txa
+        jsr _lcd_print_char
+        tya
+        jsr _lcd_print_char
+        ply
+        plx
+        pla
+        rts
+
+    ; Clears the LCD
     ; IN: Nothing
     ; OUT: Nothing
     ; ZP: tmp1, tmp2, tmp3 (see write and read)
@@ -120,12 +133,12 @@
         pha                      ; save A
         lda #(CMD_CLEAR_DISPLAY) ; load the clear command
         clc                      ; carry flag cleared = command operation
-        jsr write_to_lcd                ; jump to write to output the byte
+        jsr write_to_lcd         ; jump to write to output the byte
         pla                      ; restore A
         rts                      ; return
 
 
-    ; _lcd_goto: Goes to positon specified in X and Y registers
+    ; Goes to positon specified in X and Y registers
     ; IN: X - column, Y - row
     ; OUT: Nothing
     ; ZP: tmp1, tmp2, tmp3 (see write and read)
@@ -137,46 +150,38 @@
         clc                       ; clear carry - why?
         ora #(CMD_SET_DDRAM_ADDR) ; add in command
         clc                       ; carry flag cleared = command operation
-        jsr write_to_lcd                 ; jump to write to output the byte
+        jsr write_to_lcd          ; jump to write to output the byte
         pla                       ; restore A
         rts                       ; return
 
 
-    ; check_line_wrap: Called after a byte is written to LCD bus. Part of write operation is a read that will have LCD's address counter in A. Checks to see if counter is on line break and addjust address accordingly.
+    ; Called after a byte is written to LCD bus. Part of write operation is a read that will have LCD's address counter in A. Checks to see if counter is on line break and addjust address accordingly.
     ; IN: 
     ; OUT: 
     ; ZP: 
     check_line_wrap:
-        pha
-        phx
-        ldx #0
+        pha                         ; save A
+        phx                         ; save X
+        ldx #0                      ;
     @loop:
-        cmp lcd_wordwrap_sources, x
-        beq @line_wrap
-        inx
-        cpx #4 ; row count
-        beq @no_wrap
-        bra @loop
+        cmp lcd_wordwrap_sources, x ;
+        beq @line_wrap              ;
+        inx                         ;
+        cpx #4                      ; rows
+        beq @no_wrap                ;
+        bra @loop                   ;
     @line_wrap:
-        lda lcd_wordwrap_targets, x
-        ora #(CMD_SET_DDRAM_ADDR)
-        clc
-        jsr write_to_lcd
+        lda lcd_wordwrap_targets, x ;
+        ora #(CMD_SET_DDRAM_ADDR)   ; add in command
+        clc                         ; carry flag cleared = command operation
+        jsr write_to_lcd            ; jump to write to output the byte
     @no_wrap:
-        plx
-        pla
-        rts
-;lcd_mapping_coordinates: .byte 00, 64, LCD_COLUMNS, 64 + LCD_COLUMNS
-;lcd_wordwrap_sources:    .byte LCD_COLUMNS, 64 + LCD_COLUMNS, 64, 00
-;lcd_wordwrap_targets:    .byte 64, LCD_COLUMNS, 64 + LCD_COLUMNS, 00
+        plx                         ; restore X
+        pla                         ; restore A
+        rts                         ; return
 
-;lcd_mapping_coordinates: .byte 00, 64, 20, 84 
-;lcd_wordwrap_sources:    .byte 20, 84, 64, 00
-;lcd_wordwrap_targets:    .byte 64, 20, 84, 00
-;row_offsets:            .byte 00, 64, 20, 84
-;row_offsets:            .byte $00, $40, $14, $54
 
-    ; write_to_lcd: Writes the byte to the LCD bus, preserving VIA pins
+    ; Writes the byte to the LCD bus, preserving VIA pins
     ; IN:
     ;    A - command byte to write
     ;    CLC - command
@@ -240,7 +245,7 @@
         rts                            ; return
 
 
-    ; read_from_lcd: Reads byte from LCD bus, preserving VIA pins. Bit 7 is BF and reset is LCD address counter
+    ; Reads byte from LCD bus, preserving VIA pins. Bit 7 is BF and reset is LCD address counter
     ; IN:
     ;    CLC - command
     ;    SEC - data
@@ -289,10 +294,10 @@
         
         ora #(LCD_ENABLE)             ; add enable
         sta VIA2_PORTA
-        
+
         lda VIA2_PORTA
         sta tmp3
-        
+
         eor #(LCD_ENABLE)             ; remove enable
         sta VIA2_PORTA
 
@@ -308,7 +313,7 @@
         rts                           ; return
 
 
-    ; init_write_to_lcd: Used in the initial force initialization routines
+    ; Used in the initial force initialization routines
     ; IN: A - command byte to write
     ; OUT: Nothing
     ; ZP: tmp1 - temp storage for input data
@@ -317,7 +322,6 @@
         lda VIA2_PORTA    ; load current data on port
         and #%00000001    ; save off state of pin 0
         ora tmp1          ; add commands to data
-        ;sta tmp1          ; store back to tmp1
         ora #(LCD_ENABLE) ; add enable
         sta VIA2_PORTA    ; write
         eor #(LCD_ENABLE) ; remove enable
