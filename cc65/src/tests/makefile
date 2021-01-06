@@ -4,11 +4,11 @@ RM_FLAGS=-rf
 BUILD_FOLDER=build
 ROM_FOLDER=$(BUILD_FOLDER)/rom
 
-ADDRESS_MODE=ext
+ADDRESS_MODE=basic
 
 FIRMWARE_PROJECTS = blink \
-                    lcd \
-					serial
+                    lcd4b \
+					acia
 
 FIRMWARE_BINARIES=$(FIRMWARE_PROJECTS:%=$(ROM_FOLDER)/%.$(ADDRESS_MODE).bin)
 

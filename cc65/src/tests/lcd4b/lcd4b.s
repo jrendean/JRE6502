@@ -18,10 +18,11 @@ EN = %00010000
 RS = %00100000
 
 init:
+
       ;ldx #$ff
       ;txs
       
-  lda #%11111111 ; Set all pins on port B to output
+  lda #%11111111 ; Set all pins on port A to output
   sta VIA2_DDRA
 
   ; wait for startup
