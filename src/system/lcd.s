@@ -18,7 +18,7 @@ lcd_wordwrap_targets:    .byte 64, 20, 84, 00
 ; IN: Nothing
 ; OUT: Nothing
 ; ZP: Nothing
-_lcd_init:
+lcd_init:
     pha
 
     ; set the pins to output, keeping pin 0 what is is set to (though should always be output?)
@@ -28,27 +28,27 @@ _lcd_init:
 
     ; wait 50ms for startup
     lda #50
-    jsr _delay_ms
+    jsr delay_ms
 
     ; https://en.wikipedia.org/wiki/Hitachi_HD44780_LCD_controller
     ; 3x force to 8bit - 0011 0000 (8bit write)
     lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
     jsr init_write_to_lcd
     lda #5
-    jsr _delay_ms
+    jsr delay_ms
     lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
     jsr init_write_to_lcd
     lda #5
-    jsr _delay_ms
+    jsr delay_ms
     lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
     jsr init_write_to_lcd
     lda #5
-    jsr _delay_ms
+    jsr delay_ms
     ; set to 4bit - 0010 0000 (8bit write)
     lda #(CMD_FUNCTION_SET)
     jsr init_write_to_lcd
     lda #5
-    jsr _delay_ms
+    jsr delay_ms
 
     ; actual initialization
     clc  ; carry flag cleared = command operation
@@ -59,7 +59,7 @@ _lcd_init:
     lda #(CMD_ENTRY_MODE_SET | EM_CURSOR_INC | EM_SHIFT_CURSOR)
     jsr write_to_lcd
 
-    jsr _lcd_clear
+    jsr lcd_clear
 
     pla
     rts
@@ -69,7 +69,7 @@ _lcd_init:
 ; IN: lcd_out_ptr - ZP pointer to null terminated string
 ; OUT: Nothing
 ; ZP: tmp1, tmp2, tmp3 (see write and read)
-_lcd_print_string:
+lcd_print_string:
     pha                  ; save A
     phy                  ; save Y
     ldy #0               ; start at first byte
@@ -91,7 +91,7 @@ _lcd_print_string:
 ; IN: A byte to write
 ; OUT: Nothing
 ; ZP: tmp1, tmp2, tmp3 (see write and read)
-_lcd_print_char:
+lcd_print_char:
     pha                 ; save A
     sec                 ; carry flag set = data operation
     jsr write_to_lcd    ; jump to write to output the byte
@@ -100,15 +100,15 @@ _lcd_print_char:
     rts                 ; return
 
 
-_lcd_print_hex:
+lcd_print_hex:
     pha
     phx
     phy
-    jsr _convert_to_hex
+    jsr convert_to_hex
     txa
-    jsr _lcd_print_char
+    jsr lcd_print_char
     tya
-    jsr _lcd_print_char
+    jsr lcd_print_char
     ply
     plx
     pla
@@ -118,7 +118,7 @@ _lcd_print_hex:
 ; IN: Nothing
 ; OUT: Nothing
 ; ZP: tmp1, tmp2, tmp3 (see write and read)
-_lcd_clear:
+lcd_clear:
     pha                      ; save A
     lda #(CMD_CLEAR_DISPLAY) ; load the clear command
     clc                      ; carry flag cleared = command operation
@@ -131,7 +131,7 @@ _lcd_clear:
 ; IN: X - column, Y - row
 ; OUT: Nothing
 ; ZP: tmp1, tmp2, tmp3 (see write and read)
-_lcd_goto:
+lcd_goto:
     pha                       ; save A
     txa                       ; move X in to A
     clc                       ; clear carry - why?

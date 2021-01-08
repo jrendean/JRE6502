@@ -16,7 +16,7 @@ NMI:
 
 
 IRQ:
-  jsr _led_on
+  jsr led_on
   rti
 
 
@@ -28,19 +28,24 @@ RESET:
   ldx #$ff
   txs
 
-  jsr _led_init
+  jsr led_init
 
-  jsr _lcd_init
+  jsr lcd_init
   loadptr lcd_out_ptr, lcd_message
-  jsr _lcd_print_string
+  jsr lcd_print_string
 
-  jsr _console_init
+  jsr console_init
   loadptr console_out_ptr, terminal_message
-  jsr _console_write_string
+  jsr console_write_string
+
 
 
 
 loop:
+
+  ;jsr led_flash
+  ;lda #$FA
+  ;jsr delay_ms
   jmp loop
 
 

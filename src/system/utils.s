@@ -9,7 +9,7 @@
 ; IN: A - the value to convert to hex
 ; OUT: X - MSB, Y- LSB
 ; ZP: Nothing
-_convert_to_hex:
+convert_to_hex:
     pha              ; save A
     pha              ; save A for use in MSB
     and #%00001111   ; mask off MSB
@@ -31,7 +31,7 @@ _convert_to_hex:
 ; IN: 
 ; OUT: A is the length of the string
 ; ZP: ptr1
-_str_length:
+str_length:
     phy           ; save Y
     ldy #0        ; set Y to 0
 .loop:
@@ -56,7 +56,7 @@ _str_length:
 ; minimum delay is 20us with increments of 5us. The formula is:
 ; duration = 5*a + 15, where "a" is the value in the accumulator
 ; note a value of zero in "a" is treated as 256, not zero!
-_delay_5us:
+delay_5us:
    nop
    tax
 delay_5us_loop:
@@ -66,13 +66,13 @@ delay_5us_loop:
 
 ; ---------------------------------------------------------------------------
 ; Delay ms
-_delay_ms:
+delay_ms:
    phy
    phx
    tay
    lda #196                            ; 196*5 + 15 = 995 (dey&bne take 5 cycles)
-delay_ms_loop1:   
-   jsr _delay_5us
+delay_ms_loop1:
+   jsr delay_5us
    dey
    bne delay_ms_loop1
    plx
@@ -90,7 +90,7 @@ delay_ms_loop1:
 ; duration = 4*a + 3, where "a" is the value in the accumulator
 ; note a value of zero in "a" is treated as 256, not zero!
 ; range is from 7us to 1027us
-_delay_4us:      ; 6 jsr
+delay_4us:      ; 6 jsr
    tax         ; 2
 delay_4us_loop:
    pha         ; 3
@@ -104,13 +104,13 @@ delay_4us_loop:
 ; ---------------------------------------------------------------------------
 ; Delay ms
 ;
-;_delay_ms:
+;delay_ms:
 ;   phy
 ;   phx
 ;   tay
 ;   lda #249                            ; 249*4 + 3 = 999
 ;delay_ms_loop1:   
-;   jsr _delay_4us
+;   jsr delay_4us
 ;   dey
 ;   bne delay_ms_loop1
 ;   plx
