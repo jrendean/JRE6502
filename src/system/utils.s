@@ -22,9 +22,44 @@ convert_to_hex:
     lsr
     tax              ; transfer A to X for use in lookup indexing
     lda hex_table, x ; load value from table in to A
-    tax              ; transfer A to X (cannot do this  directly since X is being used above)
+    tax              ; transfer A to X (cannot do this directly since X is being used above)
     pla              ; restore A
     rts              ; return
+
+
+;
+; TODO
+;
+convert_to_dec:
+    sed
+    stz ptr2
+    stz ptr2+1
+
+    sta tmp2
+
+    ldx #$0E
+.loop:
+    asl tmp2
+    bcc .htd1
+    lda ptr2
+    clc
+    adc dec_table, x
+    sta ptr2
+    lda ptr2+1
+    adc dec_table+1, x
+    sta ptr2+1
+.htd1:
+    dex
+    dex
+    bpl .loop
+
+    cld
+
+    ldy #$00,
+    lda (ptr2), y
+
+    rts
+
 
 
 ; 
@@ -44,6 +79,85 @@ str_length:
     tya           ; transfer Y to A
     ply           ; restore Y
     rts           ; return
+
+
+
+str_compare:
+        phy
+        ldy #$00
+.strcmp_loop:
+        lda (ptr1),y
+        beq .ptr1_end
+        cmp (ptr2),y
+        bne .set_result
+        iny
+        beq .equal ; prevention against infinite loop
+        bra .strcmp_loop
+.ptr1_end:
+        cmp (ptr2),y
+.set_result:
+        beq .equal
+        bmi .less_than
+        lda #$01
+        bra .return
+.equal:
+        lda #$00
+        bra .return
+.less_than:
+        lda #$ff
+        bra .return
+.return:
+        ply
+        rts
+
+
+
+
+
+; http://6502.org/source/io/primm.htm
+primm_console:
+    pla               ; get low part of (string address-1)
+    sta   DPL
+    pla               ; get high part of (string address-1)
+    sta   DPH
+    bra   .primm3
+.primm2:
+    jsr   console_write_byte        ; output a string char
+.primm3:
+    inc   DPL         ; advance the string pointer
+    bne   .primm4
+    inc   DPH
+.primm4:
+    lda   (DPL)       ; get string char
+    bne   .primm2      ; output and continue if not NUL
+    lda   DPH
+    pha
+    lda   DPL
+    pha
+    rts               ; proceed at code following the NUL 
+
+primm_lcd:
+    pla                 ; get low part of (string address-1)
+    sta DPL
+    pla                 ; get high part of (string address-1)
+    sta DPH
+    bra .primm3
+.primm2:
+    jsr lcd_print_char  ; output a string char
+.primm3:
+    inc DPL             ; advance the string pointer
+    bne .primm4
+    inc DPH
+.primm4:
+    lda (DPL)           ; get string char
+    bne .primm2         ; output and continue if not NUL
+    lda DPH
+    pha
+    lda DPL
+    pha
+    rts                 ; proceed at code following the NUL 
+
+
 
 
 
@@ -123,3 +237,4 @@ delay_4us_loop:
 
 .rodata
     hex_table: .byte "0123456789ABCDEF"
+    dec_table: .word $01, $02, $04, $08, $16, $32, $64, $128

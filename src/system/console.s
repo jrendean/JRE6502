@@ -107,16 +107,24 @@ console_read_string:
     jsr console_read_byte
     cmp #$0D  ; $0D=CR, $0A=LF
     beq .done
-
     cpy tmp1
-    beq .get_char
+    beq .done
+    ;beq .get_char
 
-    sta (ptr1), y
+    jsr console_write_byte ; echo back to terminal
+
+    sta (ptr2), y
     iny
+    ;jsr console_write_byte ; echo back to terminal
     bra .get_char
 .done:
-    lda #0
-    sta (ptr1), y
+    lda #$00
+    sta (ptr2), y
+    
+    ; debugging to know done was hit via enter or buffer length limit
+    lda #'D'
+    jsr console_write_byte
+
     ply
     pla
     rts
@@ -128,6 +136,6 @@ console_read_string:
 console_read_byte:
     lda ACIA1_STATUS         ; load the ACIA Status register in to A
     and #ACIA_STATUS_RX_FULL ; and with the bits for a fill receive register
-    beq console_read_byte   ; if the contents of A == 0 then branch to _console_read_char
+    beq console_read_byte    ; if the contents of A == 0 then branch to _console_read_char
     lda ACIA1_DATA           ; load the ACIA Data register in to A
     rts                      ; return
