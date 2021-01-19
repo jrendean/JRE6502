@@ -102,27 +102,55 @@ console_read_string:
 
     sta tmp1
 
-    ldy #0
+    lda #$00
+    ldy #$00
+.clean_loop:
+    sta (ptr1),y
+    iny
+    cpy tmp1
+    bne .clean_loop
+
+    ldy #$00
 .get_char:
     jsr console_read_byte
     cmp #$0D  ; $0D=CR, $0A=LF
     beq .done
+
+    cmp #$08
+    beq .backspace
+    cmp #$20      ; special chars 0-31, ignore
+    bmi .get_char
+    cmp #$7e      ; special chars 127-255, ignore
+    bpl .get_char 
+
     cpy tmp1
     beq .done
     ;beq .get_char
 
     jsr console_write_byte ; echo back to terminal
 
-    sta (ptr2), y
+    sta (ptr1), y
     iny
-    ;jsr console_write_byte ; echo back to terminal
     bra .get_char
-.done:
+
+.backspace:
+    cpy #$00
+    beq .get_char
+    dey
     lda #$00
-    sta (ptr2), y
-    
-    ; debugging to know done was hit via enter or buffer length limit
-    lda #'D'
+    sta (ptr1), y
+    lda #$08
+    jsr console_write_byte ; echo back to terminal
+
+    bra .get_char
+
+.done:
+    ;lda #$00
+    ;sta (ptr1), y ; null terminate
+
+    lda #$0D
+    jsr console_write_byte
+    lda #$0A
     jsr console_write_byte
 
     ply

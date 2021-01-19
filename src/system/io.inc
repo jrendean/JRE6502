@@ -3,10 +3,10 @@
 ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/io.inc65
 ;https://github.com/peternoyes/dodo/tree/master/src
 
-__VIA1_START__ = $FE00
-__VIA2_START__ = $FE20
-__ACIA_START__ = $FE40
-__EXT_START__  = $FE50
+__VIA1_START__  = $FE00
+__VIA2_START__  = $FE20
+__ACIA1_START__ = $FE40
+__EXT_START__   = $FE60
 
 VIA1_PORTB  = __VIA1_START__ + 0
 VIA1_PORTA  = __VIA1_START__ + 1
@@ -65,10 +65,10 @@ VIA_PB6 = 1 << 6
 VIA_PB7 = 1 << 7
 
 
-ACIA1_DATA    = __ACIA_START__ + $00
-ACIA1_STATUS  = __ACIA_START__ + $01
-ACIA1_COMMAND = __ACIA_START__ + $02
-ACIA1_CONTROL = __ACIA_START__ + $03
+ACIA1_DATA    = __ACIA1_START__ + $00
+ACIA1_STATUS  = __ACIA1_START__ + $01
+ACIA1_COMMAND = __ACIA1_START__ + $02
+ACIA1_CONTROL = __ACIA1_START__ + $03
 
 ; ACIA control register bit values
 

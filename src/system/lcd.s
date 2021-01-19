@@ -99,7 +99,10 @@ lcd_print_char:
     pla                 ; restore A
     rts                 ; return
 
-
+;
+;
+;
+;
 lcd_print_hex:
     pha
     phx

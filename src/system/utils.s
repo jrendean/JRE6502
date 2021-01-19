@@ -3,6 +3,7 @@
 
 
 
+hex_table: .byte "0123456789ABCDEF"
 
 ; _convert_to_hex: Converts the value in A to hex by putting MSB in X and LSB in Y
 ; https://github.com/dbuchwald/6502/blob/master/Software/common/source/utils.s
@@ -27,6 +28,8 @@ convert_to_hex:
     rts              ; return
 
 
+
+dec_table: .word $01, $02, $04, $08, $16, $32, $64, $128
 ;
 ; TODO
 ;
@@ -55,7 +58,7 @@ convert_to_dec:
 
     cld
 
-    ldy #$00,
+    ldy #$00
     lda (ptr2), y
 
     rts
@@ -67,48 +70,50 @@ convert_to_dec:
 ; OUT: A is the length of the string
 ; ZP: ptr1
 str_length:
-    phy           ; save Y
-    ldy #0        ; set Y to 0
+    phy          ; save Y
+    ldy #$00     ; set Y to 0
 .loop:
-    lda (ptr1), y ; load value from ptr1 index Y in to A
-    beq .done     ; if value equals 0 branch to @done
-    iny           ; increment Y
-    bra .loop     ; branch back
+    lda (ptr1),y ; load value from ptr1 index Y in to A
+    beq .done    ; if value equals 0 branch to @done
+    iny          ; increment Y
+    bra .loop    ; branch back
 .done:
-    dey           ; count currently has \0 so subtract one
-    tya           ; transfer Y to A
-    ply           ; restore Y
-    rts           ; return
+    tya          ; transfer Y to A
+    ply          ; restore Y
+    rts          ; return
 
 
-
+;
+;
+;
+;
 str_compare:
-        phy
-        ldy #$00
-.strcmp_loop:
-        lda (ptr1),y
-        beq .ptr1_end
-        cmp (ptr2),y
-        bne .set_result
-        iny
-        beq .equal ; prevention against infinite loop
-        bra .strcmp_loop
+    phy
+    ldy #$00
+.compare:
+    lda (ptr1),y
+    beq .ptr1_end
+    cmp (ptr2),y
+    bne .set_result
+    iny
+    beq .equal ; prevention against infinite loop
+    bra .compare
 .ptr1_end:
-        cmp (ptr2),y
+    cmp (ptr2),y
 .set_result:
-        beq .equal
-        bmi .less_than
-        lda #$01
-        bra .return
+    beq .equal
+    bmi .less_than
+    lda #$01
+    bra .return
 .equal:
-        lda #$00
-        bra .return
+    lda #$00
+    bra .return
 .less_than:
-        lda #$ff
-        bra .return
+    lda #$FF
+    bra .return
 .return:
-        ply
-        rts
+    ply
+    rts
 
 
 
@@ -235,6 +240,3 @@ delay_4us_loop:
 
 
 
-.rodata
-    hex_table: .byte "0123456789ABCDEF"
-    dec_table: .word $01, $02, $04, $08, $16, $32, $64, $128

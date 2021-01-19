@@ -15,3 +15,6 @@ lcd_out_ptr     = $1E ; 2 bytes
 
 DPL = $20 ; 1 byte
 DPH = $21 ; 1 byte
+
+CNT = $22 ; 2 bytes
+
