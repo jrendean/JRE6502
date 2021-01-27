@@ -4,7 +4,7 @@
 ;
 ;
   .org $FFFA
-  .word NMI
+  .word NMI1
   .word RESET
   .word IRQ
 
@@ -14,13 +14,14 @@
   .include "lcd.s"
   .include "led.s"
   .include "console.s"
+  .include "strings.s"
+  .include "utils.s"
   .include "macros.inc"
-
 
 BUFFLEN = 16
 
 
-NMI:
+NMI1:
   rti
 
 
@@ -83,15 +84,12 @@ TMR_SETUP:
 
 loop:
 
-  ;;loadptr console_out_ptr, CNT
-  ;;copyptr CNT, console_out_ptr
-  ;;jsr console_write_string
-  ;lda CNT+1
-  ;jsr console_write_hex
-  ;lda CNT
-  ;jsr console_write_hex
-  ;lda #$0D
-  ;jsr console_write_byte
+  lda CNT+1
+  jsr console_write_hex
+  lda CNT
+  jsr console_write_hex
+  lda #$0D
+  jsr console_write_byte
   
 
 
@@ -99,7 +97,6 @@ loop:
   copyptr console_buffer, ptr1
   lda #BUFFLEN
   jsr console_read_string
-
 
 
   jsr lcd_clear
@@ -118,20 +115,27 @@ loop:
   cmp #$00
   beq .off
 
+  ;copyptr console_buffer, ptr1
+  ;loadptr ptr2, cmd_xmodem
+  ;jsr str_compare
+  ;cmp #$00
+  ;jsr XModem
+  ;jmp loop
+
   jsr primm_lcd
   .asciiz " Unknown "
-  bra loop
+  jmp loop
 
 .on:
   jsr led_on
   jsr primm_lcd
   .asciiz " LED On "
-  bra loop
+  jmp loop
 
 .off:
+  jsr led_off
   jsr primm_lcd
   .asciiz " LED Off "
-  jsr led_off
 
 
   jmp loop
@@ -150,3 +154,5 @@ loop:
   terminal_message: .byte $0A, "Terminal ready>", $00 ; .byte do need $00 on end
   cmd_on: .asciiz "led on"
   cmd_off: .asciiz "off led"
+  cmd_monitor: .asciiz "monitor"
+  cmd_xmodem: .asciiz "xmodem"

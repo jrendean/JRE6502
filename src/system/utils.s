@@ -65,81 +65,31 @@ convert_to_dec:
 
 
 
-; 
-; IN: 
-; OUT: A is the length of the string
-; ZP: ptr1
-str_length:
-    phy          ; save Y
-    ldy #$00     ; set Y to 0
-.loop:
-    lda (ptr1),y ; load value from ptr1 index Y in to A
-    beq .done    ; if value equals 0 branch to @done
-    iny          ; increment Y
-    bra .loop    ; branch back
-.done:
-    tya          ; transfer Y to A
-    ply          ; restore Y
-    rts          ; return
-
-
-;
-;
-;
-;
-str_compare:
-    phy
-    ldy #$00
-.compare:
-    lda (ptr1),y
-    beq .ptr1_end
-    cmp (ptr2),y
-    bne .set_result
-    iny
-    beq .equal ; prevention against infinite loop
-    bra .compare
-.ptr1_end:
-    cmp (ptr2),y
-.set_result:
-    beq .equal
-    bmi .less_than
-    lda #$01
-    bra .return
-.equal:
-    lda #$00
-    bra .return
-.less_than:
-    lda #$FF
-    bra .return
-.return:
-    ply
-    rts
-
-
-
 
 
 ; http://6502.org/source/io/primm.htm
 primm_console:
     pla               ; get low part of (string address-1)
-    sta   DPL
+    sta DPL
     pla               ; get high part of (string address-1)
-    sta   DPH
-    bra   .primm3
+    sta DPH
+    bra .primm3
 .primm2:
-    jsr   console_write_byte        ; output a string char
+    jsr console_write_byte        ; output a string char
 .primm3:
-    inc   DPL         ; advance the string pointer
-    bne   .primm4
-    inc   DPH
+    inc DPL         ; advance the string pointer
+    bne .primm4
+    inc DPH
 .primm4:
-    lda   (DPL)       ; get string char
-    bne   .primm2      ; output and continue if not NUL
-    lda   DPH
+    lda (DPL)       ; get string char
+    bne .primm2      ; output and continue if not NUL
+    lda DPH
     pha
-    lda   DPL
+    lda DPL
     pha
     rts               ; proceed at code following the NUL 
+
+
 
 primm_lcd:
     pla                 ; get low part of (string address-1)
@@ -235,8 +185,3 @@ delay_4us_loop:
 ;   plx
 ;   ply
 ;   rts
-
-
-
-
-

@@ -1,4 +1,6 @@
 
+;  .ifndef MACROS_INC
+;  .defc MACROS_INC
 
 
   .macro loadptr, ptr, val
@@ -18,3 +20,7 @@
     sta \dest + 1
     ;pla
   .endm
+
+
+;  .endif
+  

@@ -1,5 +1,8 @@
 
 
+  .ifndef IO_INC
+  .defc IO_INC
+
 ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/io.inc65
 ;https://github.com/peternoyes/dodo/tree/master/src
 
@@ -98,7 +101,6 @@ ACIA_BAUD_9600   = %00001110
 ACIA_BAUD_19200  = %00001111
 
 ; ACIA command register bit values
-
 ACIA_PARITY_ODD              = %00000000
 ACIA_PARITY_EVEN             = %01000000
 ACIA_PARITY_MARK             = %10000000
@@ -126,3 +128,5 @@ ACIA_STATUS_RX_FULL    = 1 << 3
 ACIA_STATUS_OVERRUN    = 1 << 2
 ACIA_STATUS_FRAME_ERR  = 1 << 1
 ACIA_STATUS_PARITY_ERR = 1 << 0
+
+  .endif

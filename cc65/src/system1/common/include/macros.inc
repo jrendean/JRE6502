@@ -3,11 +3,22 @@
 
 ; 
 .macro loadptr ptr, val
-    lda #<(val)
-    sta ptr
-    lda #>(val)
-    sta ptr + 1
+  lda #<(val)
+  sta ptr
+  lda #>(val)
+  sta ptr + 1
 .endmacro
+
+.macro copyptr src, dest
+  lda src
+  sta dest
+  lda src + 1
+  sta dest + 1
+.endmacro
+
+
+
+
 
 
 

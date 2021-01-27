@@ -104,23 +104,23 @@ console_read_string:
 
     lda #$00
     ldy #$00
-.clean_loop:
+.clean_buffer:
     sta (ptr1),y
     iny
     cpy tmp1
-    bne .clean_loop
+    bne .clean_buffer
 
     ldy #$00
 .get_char:
     jsr console_read_byte
-    cmp #$0D  ; $0D=CR, $0A=LF
+    cmp #$0D
     beq .done
 
-    cmp #$08
+    cmp #$08       ; backspace
     beq .backspace
-    cmp #$20      ; special chars 0-31, ignore
+    cmp #$20       ; special chars 0-31, ignore
     bmi .get_char
-    cmp #$7e      ; special chars 127-255, ignore
+    cmp #$7e       ; special chars 127-255, ignore
     bpl .get_char 
 
     cpy tmp1
@@ -145,9 +145,6 @@ console_read_string:
     bra .get_char
 
 .done:
-    ;lda #$00
-    ;sta (ptr1), y ; null terminate
-
     lda #$0D
     jsr console_write_byte
     lda #$0A

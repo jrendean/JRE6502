@@ -1,4 +1,6 @@
 
+;  .ifndef LCD_INC
+;  .defc LCD_INC
 
 ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/lcd.s65
 
@@ -39,3 +41,5 @@ FS_NUM_LINES_1   = %00000000
 FS_NUM_LINES_2   = %00001000
 FS_DATA_LENGTH_4 = %00000000
 FS_DATA_LENGTH_8 = %00010000
+
+;  .endif

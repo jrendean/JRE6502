@@ -1,9 +1,9 @@
-        .include "zeropage.inc"
+.include "zeropage.inc"
 
-        .import _delay_ms
-        .import _console_is_data_available, _console_write_byte, _console_read_byte
+.import delay_ms
+.import console_is_data_available, console_write_byte, console_read_byte
 
-        .export _modem_receive
+.export modem_receive
 
 ; Original implementation by Daryl Rictor 
 ; Slightly modified for this build (IRQ-based ACIA)
@@ -37,7 +37,7 @@ delay_counter:    .res 1
 
 
 ; NEGATIVE C COMPLIANT - uses carry flag for result
-_modem_receive:
+modem_receive:
         ; Send prompt to terminal
         jsr @send_prompt
         ; Initialize block number
@@ -54,15 +54,15 @@ _modem_receive:
 @enable_crc:
         ; Request CRC mode
         lda #('C')
-        jsr _console_write_byte
+        jsr console_write_byte
 @read_block_loop:
         ; Poll for first character
         jsr @wait_for_next_char
         bcc @enable_crc
-        ; jsr _console_is_data_available
+        ; jsr console_is_data_available
         ; bcc @read_block_loop
         ; Read data
-        ; jsr _console_read_byte
+        ; jsr console_read_byte
         ; Check control characters
         cmp #(ESC)
         bne @not_quitting_yet
@@ -128,7 +128,7 @@ _modem_receive:
         jsr @flush_input
         ; Send negative acknowledgement
         lda #(NAK)
-        jsr _console_write_byte
+        jsr console_write_byte
         ; Try the package again
         jmp @read_block_loop
 @correct_crc:
@@ -174,13 +174,13 @@ _modem_receive:
         ; Block completed
         inc block_number
         lda #(ACK)
-        jsr _console_write_byte
+        jsr console_write_byte
         jmp @read_block_loop
 
 @receive_complete:
         ; Acknowledge transfer completion
         lda #(ACK)
-        jsr _console_write_byte
+        jsr console_write_byte
         ; Flush any input pending (should be none)
         jsr @flush_input
         ; Send nice completion message
@@ -195,12 +195,12 @@ _modem_receive:
         sta delay_counter
 @three_second_wait:
         ; Is there any data available?
-        jsr _console_is_data_available
+        jsr console_is_data_available
         ; Yes it is
         bcs @three_read_data
         ; Nope, it's not, wait 20ms
         lda #20
-        jsr _delay_ms
+        jsr delay_ms
         ; Reduce counter
         dec delay_counter
         ; Repeat until found or zero
@@ -209,7 +209,7 @@ _modem_receive:
         clc
         rts
 @three_read_data:
-        jsr _console_read_byte
+        jsr console_read_byte
         ; Data loaded, set carry
         sec
         rts
@@ -220,19 +220,19 @@ _modem_receive:
         sta delay_counter
 @one_second_wait:
         ; Is there any data available?
-        jsr _console_is_data_available
+        jsr console_is_data_available
         ; Yes it is
         bcs @one_read_data
         ; Nope, it's not, wait 20ms
         lda #20
-        jsr _delay_ms
+        jsr delay_ms
         ; Reduce counter
         dec delay_counter
         ; Repeat until found or zero
         bne @one_second_wait
         rts
 @one_read_data:
-        jsr _console_read_byte
+        jsr console_read_byte
         ; Data loaded, ignore, repeat
         bra @one_second_wait
 
@@ -241,7 +241,7 @@ _modem_receive:
 @prompt_loop:
         lda prompt,x
         beq @prompt_done
-        jsr _console_write_byte
+        jsr console_write_byte
         inx
         bra @prompt_loop
 @prompt_done:
@@ -252,7 +252,7 @@ _modem_receive:
 @success_loop:
         lda success_message,x
         beq @success_done
-        jsr _console_write_byte
+        jsr console_write_byte
         inx
         bra @success_loop
 @success_done:
@@ -263,7 +263,7 @@ _modem_receive:
 @error_loop:
         lda error_message,x
         beq @error_done
-        jsr _console_write_byte
+        jsr console_write_byte
         inx
         bra @error_loop
 @error_done:
