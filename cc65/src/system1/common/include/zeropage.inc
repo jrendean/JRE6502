@@ -1,6 +1,7 @@
 .globalzp sp
 .globalzp sreg
 .globalzp regsave
+
 .globalzp tmp1
 .globalzp tmp2
 .globalzp tmp3
@@ -16,3 +17,5 @@
 
 .globalzp DPL
 .globalzp DPH
+
+.globalzp CNT

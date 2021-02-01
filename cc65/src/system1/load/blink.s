@@ -3,15 +3,13 @@
 .import led_init, led_flash
 
 .segment "VECTORS"
-
-.word $0000
-.word init
-.word $0000
-
+  .word $0000
+  .word init
+  .word $0000
 
 .code
   init:
-    jsr led_init
+    ;;jsr led_init
     ldx #10
   main_loop:
     jsr led_flash

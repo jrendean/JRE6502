@@ -9,6 +9,7 @@
 sp:          .res 2
 sreg:        .res 2
 regsave:     .res 4
+
 ptr1:        .res 2
 ptr2:        .res 2
 ptr3:        .res 2
@@ -24,3 +25,5 @@ lcd_out_ptr: .res 2
 
 DPL: .res 1
 DPH: .res 1
+
+CNT: .res 2

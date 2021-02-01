@@ -59,10 +59,10 @@ modem_receive:
         ; Poll for first character
         jsr @wait_for_next_char
         bcc @enable_crc
-        ; jsr console_is_data_available
-        ; bcc @read_block_loop
+        jsr console_is_data_available
+        bcc @read_block_loop
         ; Read data
-        ; jsr console_read_byte
+        jsr console_read_byte
         ; Check control characters
         cmp #(ESC)
         bne @not_quitting_yet

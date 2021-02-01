@@ -4,7 +4,7 @@
 .import delay_ms, convert_to_hex
 
 .export console_init, console_is_data_available 
-.export console_write_string, console_write_byte, console_write_hex
+.export console_write_string, console_write_byte, console_write_hex, console_write_newline
 .export console_read_byte, console_read_string
 .export primm_console
 
@@ -72,11 +72,11 @@
     beq @wait_tx_empty    ; if the contents of A == 0 branch to _console_write_char
     pla             ; restore A
     sta ACIA1_DATA      ; write A to ACIA Data register
-    ;pha
+    ;;pha
     ;;WDC 65C51 delay bug fix
     ;lda #1
-    ;jsr _delay_ms
-    ;pla
+    ;jsr delay_ms
+    ;;pla
     rts             ; return
 
 
@@ -101,7 +101,7 @@
   ; 
   ; IN: 
   ; OUT: 
-  ; ZP: 
+  ; ZP: tmp1, ptr1
   console_read_string:
     pha
     phy
@@ -122,11 +122,11 @@
     cmp #$0D
     beq @done
 
-    cmp #$08     ; backspace
+    cmp #$08       ; backspace
     beq @backspace
-    cmp #$20     ; special chars 0-31, ignore
+    cmp #$20       ; special chars 0-31, ignore
     bmi @get_char
-    cmp #$7e     ; special chars 127-255, ignore
+    cmp #$7E       ; special chars 127-255, ignore
     bpl @get_char 
 
     cpy tmp1
@@ -147,14 +147,10 @@
     sta (ptr1), y
     lda #$08
     jsr console_write_byte ; echo back to terminal
-
     bra @get_char
 
   @done:
-    lda #$0D
-    jsr console_write_byte
-    lda #$0A
-    jsr console_write_byte
+    jsr console_write_newline
 
     ply
     pla
@@ -172,6 +168,15 @@
     lda ACIA1_DATA       ; load the ACIA Data register in to A
     rts            ; return
 
+
+  console_write_newline:
+    pha
+    lda #$0D
+    jsr console_write_byte
+    lda #$0A
+    jsr console_write_byte
+    pla
+    rts
 
 
   ; http://6502.org/source/io/primm.htm

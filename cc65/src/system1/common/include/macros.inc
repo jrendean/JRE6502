@@ -1,15 +1,14 @@
 
-.import  _console_write_string, _console_write_char, _console_write_hex
 
 ; 
-.macro loadptr ptr, val
-  lda #<(val)
-  sta ptr
-  lda #>(val)
-  sta ptr + 1
+.macro loadptr src, dest
+  lda #<(src)
+  sta dest
+  lda #>(src)
+  sta dest + 1
 .endmacro
 
-.macro copyptr src, dest
+.macro copyptr111 src, dest
   lda src
   sta dest
   lda src + 1

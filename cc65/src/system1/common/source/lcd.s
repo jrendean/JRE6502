@@ -1,5 +1,4 @@
 .include "io.inc"
-.include "lcd.inc"
 .include "zeropage.inc"
 
 .import delay_ms, convert_to_hex
@@ -14,55 +13,6 @@
 
 ; code from https://github.com/dbuchwald/6502/blob/master/Software/common/source/lcd.s
 ; code from https://github.com/grappendorf/homecomputer-6502/blob/master/firmware/lcd.s65
-
-.rodata
-;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/lcd.s65
-
-LCD_ENABLE =  %00001000
-LCD_READ =    %00000100
-LCD_WRITE =   %00000000
-LCD_DATA =    %00000010
-LCD_COMMAND = %00000000
-
-CMD_CLEAR_DISPLAY    = %00000001
-CMD_RETURN_HOME      = %00000010
-CMD_ENTRY_MODE_SET   = %00000100
-CMD_DISPLAY_CONTROL  = %00001000
-CMD_CURSOR_SHIFT     = %00010000
-CMD_FUNCTION_SET     = %00100000
-CMD_SET_CGRAM_ADDR   = %01000000
-CMD_SET_DDRAM_ADDR   = %10000000
-
-EM_SHIFT_CURSOR  = %00000000
-EM_SHIFT_DISPLAY = %00000001
-EM_CURSOR_DEC    = %00000000
-EM_CURSOR_INC    = %00000010
-
-DC_CURSOR_BLINK  = %00000001
-DC_CURSOR_OFF    = %00000000
-DC_CURSOR_ON     = %00000010
-DC_DISPLAY_OFF   = %00000000
-DC_DISPLAY_ON    = %00000100
-
-CS_SHIFT_LEFT    = %00000000
-CS_SHIFT_RIGHT   = %00000100
-CS_CURSOR_MOVE   = %00000000
-CS_DISPLAY_SHIFT = %00001000
-
-FS_FONT_5X8      = %00000000
-FS_FONT_5X10     = %00000100
-FS_NUM_LINES_1   = %00000000
-FS_NUM_LINES_2   = %00001000
-FS_DATA_LENGTH_4 = %00000000
-FS_DATA_LENGTH_8 = %00010000
-
-  ;http://forum.6502.org/viewtopic.php?f=4&t=5336&p=64722&hilit=hd44780+memory#p64722
-  row_offsets:       .byte $00, $40, $14, $54
-  ;row_offsets:       .byte 00, 64, 20, 84
-
-  lcd_mapping_coordinates: .byte 00, 64, 20, 84 
-  lcd_wordwrap_sources:  .byte 20, 84, 64, 00
-  lcd_wordwrap_targets:  .byte 64, 20, 84, 00
 
 .code
 
@@ -90,16 +40,16 @@ FS_DATA_LENGTH_8 = %00010000
     jsr delay_ms
     lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
     jsr init_write_to_lcd
-    lda #5
+    lda #1
     jsr delay_ms
     lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
     jsr init_write_to_lcd
-    lda #5
+    lda #1
     jsr delay_ms
     ; set to 4bit - 0010 0000 (8bit write)
     lda #(CMD_FUNCTION_SET)
     jsr init_write_to_lcd
-    lda #5
+    lda #1
     jsr delay_ms
 
     ; actual initialization
@@ -393,3 +343,51 @@ FS_DATA_LENGTH_8 = %00010000
     eor #(LCD_ENABLE) ; remove enable
     sta VIA2_PORTA  ; write
     rts         ; return
+
+
+.rodata
+  ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/lcd.s65
+
+  LCD_ENABLE =  %00001000
+  LCD_READ =    %00000100
+  LCD_WRITE =   %00000000
+  LCD_DATA =    %00000010
+  LCD_COMMAND = %00000000
+
+  CMD_CLEAR_DISPLAY    = %00000001
+  CMD_RETURN_HOME      = %00000010
+  CMD_ENTRY_MODE_SET   = %00000100
+  CMD_DISPLAY_CONTROL  = %00001000
+  CMD_CURSOR_SHIFT     = %00010000
+  CMD_FUNCTION_SET     = %00100000
+  CMD_SET_CGRAM_ADDR   = %01000000
+  CMD_SET_DDRAM_ADDR   = %10000000
+
+  EM_SHIFT_CURSOR  = %00000000
+  EM_SHIFT_DISPLAY = %00000001
+  EM_CURSOR_DEC    = %00000000
+  EM_CURSOR_INC    = %00000010
+
+  DC_CURSOR_BLINK  = %00000001
+  DC_CURSOR_OFF    = %00000000
+  DC_CURSOR_ON     = %00000010
+  DC_DISPLAY_OFF   = %00000000
+  DC_DISPLAY_ON    = %00000100
+
+  CS_SHIFT_LEFT    = %00000000
+  CS_SHIFT_RIGHT   = %00000100
+  CS_CURSOR_MOVE   = %00000000
+  CS_DISPLAY_SHIFT = %00001000
+
+  FS_FONT_5X8      = %00000000
+  FS_FONT_5X10     = %00000100
+  FS_NUM_LINES_1   = %00000000
+  FS_NUM_LINES_2   = %00001000
+  FS_DATA_LENGTH_4 = %00000000
+  FS_DATA_LENGTH_8 = %00010000
+
+  ;http://forum.6502.org/viewtopic.php?f=4&t=5336&p=64722&hilit=hd44780+memory#p64722
+  row_offsets:       .byte $00, $40, $14, $54
+
+  lcd_wordwrap_sources:  .byte 20, $40+20, $40, 00
+  lcd_wordwrap_targets:  .byte $40, 20, $40+20, 00
