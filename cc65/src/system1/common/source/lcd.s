@@ -23,11 +23,6 @@
   lcd_init:
     pha
 
-    ; set the pins to output, keeping pin 0 what is is set to (though should always be output?)
-    lda VIA2_DDRA
-    ora #%11111110 ; Set all pins on port B to output
-    sta VIA2_DDRA
-
     ; wait 50ms for startup
     lda #50
     jsr delay_ms
@@ -219,7 +214,8 @@
   @write_internal:
     ; set the pins to output, keeping pin 0 what is is set to (though should always be output?)
     lda VIA2_DDRA
-    ora #%11111110
+    ;ora #%11111110
+    ora #(LCD_RS | LCD_RW | LCD_EN | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
     sta VIA2_DDRA
 
     ; save off current state of pin 0
@@ -234,9 +230,9 @@
     ora tmp2             ; add the commands in
     sta VIA2_PORTA         ; send first 4 bits
     ; toggle ENABLE
-    ora #(LCD_ENABLE)        ; add enable
+    ora #(LCD_EN)        ; add enable
     sta VIA2_PORTA
-    eor #(LCD_ENABLE)        ; remove enable
+    eor #(LCD_EN)        ; remove enable
     sta VIA2_PORTA
 
     ; process LSB
@@ -249,9 +245,9 @@
     ora tmp2             ; add the commands in
     sta VIA2_PORTA         ; send first 4 bits
     ; toggle ENABLE
-    ora #(LCD_ENABLE)        ; add enable
+    ora #(LCD_EN)        ; add enable
     sta VIA2_PORTA
-    eor #(LCD_ENABLE)        ; remove enable
+    eor #(LCD_EN)        ; remove enable
     sta VIA2_PORTA
 
   @wait_for_busy:          ; wait for busy flag to not be set
@@ -291,7 +287,7 @@
     ora tmp1            ; add the commands in
     sta VIA2_PORTA
     
-    ora #(LCD_ENABLE)       ; add enable
+    ora #(LCD_EN)       ; add enable
     sta VIA2_PORTA
     
     lda VIA2_PORTA        ; read result
@@ -299,7 +295,7 @@
     sta tmp2            ; store data
     
     lda VIA2_PORTA
-    eor #(LCD_ENABLE)       ; remove enable
+    eor #(LCD_EN)       ; remove enable
     sta VIA2_PORTA
 
     ; read LSBs
@@ -308,13 +304,13 @@
     ora tmp1            ; add the commands in
     sta VIA2_PORTA
     
-    ora #(LCD_ENABLE)       ; add enable
+    ora #(LCD_EN)       ; add enable
     sta VIA2_PORTA
 
     lda VIA2_PORTA
     sta tmp3
 
-    eor #(LCD_ENABLE)       ; remove enable
+    eor #(LCD_EN)       ; remove enable
     sta VIA2_PORTA
 
     ; put result from tmp2 and tmp3 in to A
@@ -338,9 +334,9 @@
     lda VIA2_PORTA  ; load current data on port
     and #%00000001  ; save off state of pin 0
     ora tmp1      ; add commands to data
-    ora #(LCD_ENABLE) ; add enable
+    ora #(LCD_EN) ; add enable
     sta VIA2_PORTA  ; write
-    eor #(LCD_ENABLE) ; remove enable
+    eor #(LCD_EN) ; remove enable
     sta VIA2_PORTA  ; write
     rts         ; return
 
@@ -348,7 +344,7 @@
 .rodata
   ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/lcd.s65
 
-  LCD_ENABLE =  %00001000
+  ;LCD_EN =  %00001000
   LCD_READ =    %00000100
   LCD_WRITE =   %00000000
   LCD_DATA =    %00000010

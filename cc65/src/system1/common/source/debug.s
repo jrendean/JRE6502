@@ -33,10 +33,64 @@ dump_registers:
 
   php
   jsr primm_console
-  .asciiz ", P=$"
+  .asciiz ", P="
   pla
-  jsr console_write_hex
-
+  sta tmp1
+  and #$80
+  beq @n0
+  lda #'n'
+  bra @n1
+  @n0: lda #'N'
+  @n1: jsr console_write_byte
+  lda tmp1
+  and #$40
+  beq @v0
+  lda #'v'
+  bra @v1
+  @v0: lda #'V'
+  @v1: jsr console_write_byte
+  lda tmp1
+  and #$20
+  beq @b0
+  lda #'b'
+  bra @b1
+  @b0: lda #'B'
+  @b1: jsr console_write_byte
+  lda tmp1
+  and #$10
+  beq @b2
+  lda #'b'
+  bra @b3
+  @b2: lda #'B'
+  @b3: jsr console_write_byte
+  lda tmp1
+  and #$08
+  beq @d0
+  lda #'d'
+  bra @d1
+  @d0: lda #'D'
+  @d1: jsr console_write_byte
+  lda tmp1
+  and #$04
+  beq @i0
+  lda #'i'
+  bra @i1
+  @i0: lda #'I'
+  @i1: jsr console_write_byte
+  lda tmp1
+  and #$02
+  beq @z0
+  lda #'z'
+  bra @z1
+  @z0: lda #'Z'
+  @z1: jsr console_write_byte
+  lda tmp1
+  and #$01
+  beq @c0
+  lda #'c'
+  bra @c1
+  @c0: lda #'C'
+  @c1: jsr console_write_byte
   jsr console_write_newline
 
   pla
@@ -93,6 +147,7 @@ write_memory:
 
 
 dump_memory:
+    jsr str_length
     cmp #$07
     bmi @no_length
     cmp #$08

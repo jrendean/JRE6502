@@ -23,7 +23,22 @@ tmp4:        .res 1
 console_out_ptr: .res 2
 lcd_out_ptr: .res 2
 
+zp_sd_address:           .res 2  ; 2 bytes
+zp_sd_currentsector:     .res 4  ; 4 bytes
+fat32_fatstart:          .res 4  ; 4 bytes
+fat32_datastart:         .res 4  ; 4 bytes
+fat32_rootcluster:       .res 4  ; 4 bytes
+fat32_sectorspercluster: .res 1  ; 1 byte
+fat32_pendingsectors:    .res 1  ; 1 byte
+fat32_address:           .res 2  ; 2 bytes
+fat32_nextcluster:       .res 4  ; 4 bytes
+fat32_bytesremaining:    .res 4  ; 4 bytes
+fat32_errorstage = fat32_bytesremaining
+fat32_filenamepointer = fat32_bytesremaining
+
+
 DPL: .res 1
 DPH: .res 1
 
 CNT: .res 2
+

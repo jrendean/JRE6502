@@ -12,9 +12,6 @@
   ; ZP: Nothing
   led_init:
     pha
-    lda VIA2_DDRA  ; load existing pin settings
-    ora #%00000001 ; or the value to set pin to write
-    sta VIA2_DDRA
     jsr led_off
     pla
     rts
@@ -26,7 +23,8 @@
   led_on:
     pha
     lda VIA2_PORTA ; load existing values
-    ora #%00000001 ; or the value to set led pin on
+    ;ora #%00000001 ; or the value to set led pin on
+    ora PIN_LED
     sta VIA2_PORTA
     pla
     rts
@@ -38,7 +36,8 @@
   led_off:
     pha
     lda VIA2_PORTA ; load existing values
-    and #%11111110 ; and the value to set led pin off
+    ;and #%11111110 ; and the value to set led pin off
+    eor PIN_LED
     sta VIA2_PORTA
     pla
     rts
@@ -52,6 +51,5 @@
     lda #$FA
     jsr delay_ms
     jsr led_off
-    lda #$FA
     jsr delay_ms
     rts
