@@ -171,6 +171,15 @@
   ; OUT: 
   ; ZP: 
   check_line_wrap:
+  
+  
+  
+  
+  rts
+
+
+
+
     pha             ; save A
     phx             ; save X
     ldx #0            ;
@@ -213,13 +222,13 @@
   
   @write_internal:
     ; set the pins to output, keeping pin 0 what is is set to (though should always be output?)
-    lda VIA2_DDRA
+    lda LCD_DDR
     ;ora #%11111110
-    ora #(LCD_RS | LCD_RW | LCD_EN | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
-    sta VIA2_DDRA
+    ora #(LCD_RS | LCD_RW | LCD_E1 | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
+    sta LCD_DDR
 
     ; save off current state of pin 0
-    lda VIA2_PORTA         ; load current data on port
+    lda LCD_PORT         ; load current data on port
     and #%00000001         ; save off state of pin 0
     ora tmp2             ; add commnads to data
     sta tmp2             ; store back to tmp2
@@ -228,12 +237,12 @@
     lda tmp1             ; load tmp1 to A (which was A when entering subroutine)
     and #%11110000         ; mask msb
     ora tmp2             ; add the commands in
-    sta VIA2_PORTA         ; send first 4 bits
+    sta LCD_PORT         ; send first 4 bits
     ; toggle ENABLE
-    ora #(LCD_EN)        ; add enable
-    sta VIA2_PORTA
-    eor #(LCD_EN)        ; remove enable
-    sta VIA2_PORTA
+    ora #(LCD_E1)        ; add enable
+    sta LCD_PORT
+    eor #(LCD_E1)        ; remove enable
+    sta LCD_PORT
 
     ; process LSB
     lda tmp1             ; load tmp1 to A (which was A when entering subroutine)
@@ -243,12 +252,12 @@
     asl
     asl
     ora tmp2             ; add the commands in
-    sta VIA2_PORTA         ; send first 4 bits
+    sta LCD_PORT         ; send first 4 bits
     ; toggle ENABLE
-    ora #(LCD_EN)        ; add enable
-    sta VIA2_PORTA
-    eor #(LCD_EN)        ; remove enable
-    sta VIA2_PORTA
+    ora #(LCD_E1)        ; add enable
+    sta LCD_PORT
+    eor #(LCD_E1)        ; remove enable
+    sta LCD_PORT
 
   @wait_for_busy:          ; wait for busy flag to not be set
     clc              ; carry flag clear = command operation
@@ -276,42 +285,42 @@
     sta tmp1            ; save commands to tmp1
   @read_internal:
     ; preserve direction of last 4 DDRA and change data lines to input, keeping pin 0 what is is set to (though should always be output?)
-    lda VIA2_DDRA
+    lda LCD_DDR
     and #%00000001
     ora #%00001110
-    sta VIA2_DDRA
+    sta LCD_DDR
     
     ; read MSBs
-    lda VIA2_PORTA        ; load current data on port
+    lda LCD_PORT        ; load current data on port
     and #%00000001        ; save off state of pin 0
     ora tmp1            ; add the commands in
-    sta VIA2_PORTA
+    sta LCD_PORT
     
-    ora #(LCD_EN)       ; add enable
-    sta VIA2_PORTA
+    ora #(LCD_E1)       ; add enable
+    sta LCD_PORT
     
-    lda VIA2_PORTA        ; read result
+    lda LCD_PORT        ; read result
     and #%11110000        ; mask
     sta tmp2            ; store data
     
-    lda VIA2_PORTA
-    eor #(LCD_EN)       ; remove enable
-    sta VIA2_PORTA
+    lda LCD_PORT
+    eor #(LCD_E1)       ; remove enable
+    sta LCD_PORT
 
     ; read LSBs
-    ;lda VIA2_PORTA ; load current data on port
+    ;lda LCD_PORT ; load current data on port
     and #%00000001        ; save off state of pin 0
     ora tmp1            ; add the commands in
-    sta VIA2_PORTA
+    sta LCD_PORT
     
-    ora #(LCD_EN)       ; add enable
-    sta VIA2_PORTA
+    ora #(LCD_E1)       ; add enable
+    sta LCD_PORT
 
-    lda VIA2_PORTA
+    lda LCD_PORT
     sta tmp3
 
-    eor #(LCD_EN)       ; remove enable
-    sta VIA2_PORTA
+    eor #(LCD_E1)       ; remove enable
+    sta LCD_PORT
 
     ; put result from tmp2 and tmp3 in to A
     sta tmp3            ; LSB from tmp3
@@ -331,20 +340,19 @@
   ; ZP: tmp1 - temp storage for input data
   init_write_to_lcd:
     sta tmp1      ; save A to tmp1
-    lda VIA2_PORTA  ; load current data on port
+    lda LCD_PORT  ; load current data on port
     and #%00000001  ; save off state of pin 0
     ora tmp1      ; add commands to data
-    ora #(LCD_EN) ; add enable
-    sta VIA2_PORTA  ; write
-    eor #(LCD_EN) ; remove enable
-    sta VIA2_PORTA  ; write
+    ora #(LCD_E1) ; add enable
+    sta LCD_PORT  ; write
+    eor #(LCD_E1) ; remove enable
+    sta LCD_PORT  ; write
     rts         ; return
 
 
 .rodata
   ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/lcd.s65
 
-  ;LCD_EN =  %00001000
   LCD_READ =    %00000100
   LCD_WRITE =   %00000000
   LCD_DATA =    %00000010

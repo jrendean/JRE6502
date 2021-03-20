@@ -6,9 +6,14 @@
 
 via_init:
 
-  ; PA0 - PA7
-  lda #(PIN_LED | LCD_RS | LCD_RW | LCD_EN | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
+  ; PA0 LED, PA1 - PA7 LCD
+  lda #(PIN_LED | LCD_RS | LCD_RW | LCD_E1 | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
   sta VIA2_DDRA
+
+
+lda  #(LCD_E2 | LCD_RS | LCD_RW | LCD_E1 | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
+sta VIA1_DDRA
+
 
   ; PB0 & PB1 are PS2
   ; PB3 - PB6 is for SPI

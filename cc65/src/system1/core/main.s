@@ -220,34 +220,28 @@ lp3:            pha                     ;
 initialize:
 
   @init_console:
-    ; init serial console
     jsr console_init
   @init_console_success:
-    jsr console_write_newline
-    jsr console_write_newline
     jsr primm_console
-    .asciiz "JRE6502 initializing..."
+    .byte $1B,"[2J",$1B,"[91mJRE6502",$1B,"[0m initializing...",$00
     jsr console_write_newline
 
   @init_via:
     jsr via_init
 
   @init_led:
-    ; init led
     jsr led_init
     jsr led_flash
 
   @init_lcd:
-    ; init lcd
     jsr primm_console
     .asciiz "Initializing LCD..."
     jsr lcd_init
-    ; print welcome mesage
     loadptr lcd_message, lcd_out_ptr
     jsr lcd_print_string
   @init_lcd_success:
-    jsr primm_console
-    .asciiz "done"
+    loadptr init_complete, console_out_ptr
+    jsr console_write_string
     jsr console_write_newline
  
   @init_sdcard:
@@ -257,15 +251,17 @@ initialize:
     cmp #$00
     beq @init_sdcard_success
   @init_sdcard_failure:
-    jsr primm_console
-    .asciiz "failed! - "
+    loadptr init_failed, console_out_ptr
+    jsr console_write_string
     jsr console_write_hex
     bra @init_sdcard_done
   @init_sdcard_success:
-    jsr primm_console
-    .asciiz "done"
+    loadptr init_complete, console_out_ptr
+    jsr console_write_string
   @init_sdcard_done:
     jsr console_write_newline
+
+;jmp @init_rtc_success
 
   @init_fat32:
     jsr primm_console
@@ -273,14 +269,14 @@ initialize:
     jsr fat32_init
     bcc @init_fat32_success
   @init_fat32_failure:
-    jsr primm_console
-    .asciiz "failed! - "
+    loadptr init_failed, console_out_ptr
+    jsr console_write_string
     lda fat32_errorstage
     jsr console_write_hex
     bra @init_fat32_done
   @init_fat32_success:
-    jsr primm_console
-    .asciiz "done"
+    loadptr init_complete, console_out_ptr
+    jsr console_write_string
   @init_fat32_done:
     jsr console_write_newline
 
@@ -289,8 +285,8 @@ initialize:
     .asciiz "Initializing RTC..."
     jsr rtc_init
   @init_rtc_success:
-    jsr primm_console
-    .asciiz "done"
+    loadptr init_complete, console_out_ptr
+    jsr console_write_string
     jsr console_write_newline
 
 
@@ -406,4 +402,6 @@ TMR_SETUP:
     cmd_dump: .asciiz "dump"
     cmd_kbtest:.asciiz "kbtest"
     unknown_command: .asciiz "Unknown command"
-    
+    init_complete: .byte $1B,"[92mdone",$1B,"[0m",$00
+    init_failed:  .byte $1B,"[91m failed - ",$1B,"[0m",$00
+
