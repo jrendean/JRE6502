@@ -32,5 +32,9 @@
 .globalzp DPL
 .globalzp DPH
 
-.globalzp CNT
+.globalzp lcd_enable_pins
+.globalzp lcd_row
+.globalzp lcd_column
 
+.globalzp controller1
+.globalzp controller2

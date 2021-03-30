@@ -146,8 +146,8 @@ kbportreg      =     VIA2_PORTB
 kbportddr      =     VIA2_DDRB
 ;clk            =     VIA_PB4
 ;data           =     VIA_PB5
-clk            =     VIA_PB0
-data           =     VIA_PB1
+clk            =     VIA_P0
+data           =     VIA_P1
 
 ; NOTE: some locations use the inverse of the bit masks to change the state of 
 ; bit.  You will have to find them and change them in the code acordingly.

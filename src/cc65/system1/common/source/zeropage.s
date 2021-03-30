@@ -40,5 +40,9 @@ fat32_filenamepointer = fat32_bytesremaining
 DPL: .res 1
 DPH: .res 1
 
-CNT: .res 2
+lcd_enable_pins:  .res 1
+lcd_row:          .res 1
+lcd_column:       .res 1
 
+controller1: .res 3
+controller2: .res 3

@@ -22,10 +22,9 @@
   ; ZP: Nothing
   led_on:
     pha
-    lda VIA2_PORTA ; load existing values
-    ;ora #%00000001 ; or the value to set led pin on
-    ora PIN_LED
-    sta VIA2_PORTA
+    lda LED_PORT ; load existing values
+    ora PIN_LED  ; or the value to set led pin on
+    sta LED_PORT 
     pla
     rts
 
@@ -35,20 +34,19 @@
   ; ZP: Nothing
   led_off:
     pha
-    lda VIA2_PORTA ; load existing values
-    ;and #%11111110 ; and the value to set led pin off
-    eor PIN_LED
-    sta VIA2_PORTA
+    lda LED_PORT ; load existing values
+    eor PIN_LED  ; eor the value to set the led pin off
+    sta LED_PORT
     pla
     rts
 
-  ; Turns the LED on and then off with a 250ms delay in between and before returning
+  ; Turns the LED on and then off with a 150ms delay in between and before returning
   ; IN: Nothing
   ; OUT: Nothing
   ; ZP: Nothing
   led_flash:
     jsr led_on
-    lda #$FA
+    lda #150
     jsr delay_ms
     jsr led_off
     jsr delay_ms

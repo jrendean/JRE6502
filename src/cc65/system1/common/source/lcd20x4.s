@@ -171,15 +171,6 @@
   ; OUT: 
   ; ZP: 
   check_line_wrap:
-  
-  
-  
-  
-  rts
-
-
-
-
     pha             ; save A
     phx             ; save X
     ldx #0            ;
@@ -351,6 +342,7 @@
 
 
 .rodata
+  ;https://github.com/dbuchwald/6502/blob/master/Software/common/source/lcd4bit.s
   ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/lcd.s65
 
   LCD_READ =    %00000100

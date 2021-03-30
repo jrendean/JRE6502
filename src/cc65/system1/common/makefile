@@ -7,10 +7,10 @@ AR65_BINARY=ar65
 
 CPU_FLAG=--cpu 65C02
 ARCH_FLAG=-t none
-CLOCK_FLAG=-Dfastclock=$(FASTCLOCK)
+LCD_TYPE_FLAG=-Dlcd_type=$(LCD_TYPE) 
 
-CC65_FLAGS=$(CPU_FLAG) $(ARCH_FLAG) $(CLOCK_FLAG) -O
-CA65_FLAGS=$(CPU_FLAG) $(CLOCK_FLAG)
+CC65_FLAGS=$(CPU_FLAG) $(ARCH_FLAG) -O
+CA65_FLAGS=$(CPU_FLAG) $(LCD_TYPE_FLAG)
 LD65_FLAGS=
 AR65_FLAGS=r
 
@@ -63,12 +63,6 @@ COMMON_OBJECTS=$(COMMON_DEPS:%=$(COMMON_BUILD_FOLDER)/%)
 # Object files to be generated
 OBJECTS = $(ASM_SOURCES:%.s=$(BUILD_FOLDER)/%.o) $(C_SOURCES:%.c=$(BUILD_FOLDER)/%.o) $(COMMON_OBJECTS)
 
-# Default address mode (basic/ext/.. )
-ADDRESS_MODE=basic
-
-# Default clock mode (slow/fast)
-FASTCLOCK=1
-
 ifeq ($(BUILD_TYPE),load)
 # Choose configuration file for firmware (determines addressing mode)
 FIRMWARE_CFG=../common/load.cfg
@@ -76,9 +70,9 @@ FIRMWARE_CFG=../common/load.cfg
 FIRMWARE_BINARY=$(ROM_FOLDER)/$(PROJECT_NAME).load.bin
 else
 # Choose configuration file for firmware (determines addressing mode)
-FIRMWARE_CFG=../common/firmware.$(ADDRESS_MODE).cfg
+FIRMWARE_CFG=../common/firmware.cfg
 # Resulting binary file (ROM to be uploaded)
-FIRMWARE_BINARY=$(ROM_FOLDER)/$(PROJECT_NAME).$(ADDRESS_MODE).bin
+FIRMWARE_BINARY=$(ROM_FOLDER)/$(PROJECT_NAME).bin
 endif
 
 # Compile assembler sources
@@ -121,8 +115,8 @@ all: $(FIRMWARE_BINARY)
 ifeq ($(BUILD_TYPE),load)
 $(FIRMWARE_BINARY): $(OBJECTS) $(COMMON_LOAD_LIBRARY)
 	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(ROM_FOLDER)
-	$(LD65_BINARY) $(LD65_FLAGS) -C $(FIRMWARE_CFG) -m $(FIRMWARE_BINARY:.bin=.map) -o $(@:.bin=.raw) $^
-	$(PYTHON_BINARY) $(PYTHON_PROGRAM) $(@:.bin=.raw) $@
+	$(LD65_BINARY) $(LD65_FLAGS) -C $(FIRMWARE_CFG) -m $(FIRMWARE_BINARY:.bin=.map) -o $@ $^
+	$(PYTHON_BINARY) $(PYTHON_PROGRAM) $(FIRMWARE_BINARY) $(FIRMWARE_BINARY:.bin=able) $@
 else
 $(FIRMWARE_BINARY): $(OBJECTS) $(COMMON_LIBRARY)
 	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(ROM_FOLDER)
@@ -148,7 +142,7 @@ terminal:
 # Clean generated files
 clean:
 	$(RM_BINARY) -f $(ROM_FOLDER)/*.bin \
-	$(RM_BINARY) -f $(ROM_FOLDER)/*.raw \
+	$(RM_BINARY) -f $(ROM_FOLDER)/*.loadable \
 	$(BUILD_FOLDER)/*.o \
 	$(BUILD_FOLDER)/*.lst \
 	$(BUILD_FOLDER)/*.s \
