@@ -39,16 +39,25 @@ PICOCOM_FLAGS=-b 19200 -fn --send-cmd 'sz -X'
 
 # Python binary
 PYTHON_BINARY=python
-PYTHON_PROGRAM=../common/loadtrim.py
+PYTHON_PROGRAM=../../common/loadtrim.py
 
 # Build folder
+ifeq ($(BUILD_TYPE),load)
+BUILD_ROOT=../../build
+else
 BUILD_ROOT=../build
+endif
 BUILD_FOLDER=$(BUILD_ROOT)/$(BUILD_TYPE)/$(PROJECT_NAME)
 ROM_FOLDER=$(BUILD_ROOT)/$(BUILD_TYPE)
 COMMON_BUILD_FOLDER=$(BUILD_ROOT)/common
 
 # Include folders
+
+ifeq ($(BUILD_TYPE),load)
+COMMON_ROOT=../../common
+else
 COMMON_ROOT=../common
+endif
 COMMON_INCLUDE_FOLDER=$(COMMON_ROOT)/include
 COMMON_SOURCE_FOLDER=$(COMMON_ROOT)/source
 
@@ -65,7 +74,7 @@ OBJECTS = $(ASM_SOURCES:%.s=$(BUILD_FOLDER)/%.o) $(C_SOURCES:%.c=$(BUILD_FOLDER)
 
 ifeq ($(BUILD_TYPE),load)
 # Choose configuration file for firmware (determines addressing mode)
-FIRMWARE_CFG=../common/load.cfg
+FIRMWARE_CFG=../../common/load.cfg
 # Resulting binary file (ROM to be uploaded)
 FIRMWARE_BINARY=$(ROM_FOLDER)/$(PROJECT_NAME).load.bin
 else
