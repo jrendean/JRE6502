@@ -50,11 +50,15 @@ VIA_P6 = 1 << 6
 VIA_P7 = 1 << 7
 
 
+;
+; LED Ports and Pins
+;
 LED_PORT  = VIA2_PORTA
+PIN_LED = VIA_P0
 
-SNES_PORT = VIA1_PORTB
-SNES_DDR  = VIA1_DDRB
-
+;
+; LCD Port and Pins
+;
 .if lcd_type=20
   ; built in 20x4
   LCD_DDR  = VIA2_DDRA
@@ -65,7 +69,6 @@ SNES_DDR  = VIA1_DDRB
   LCD_PORT = VIA1_PORTA
 .endif
 
-PIN_LED = VIA_P0
 LCD_E2 = VIA_P0
 LCD_RS = VIA_P1
 LCD_RW = VIA_P2
@@ -75,20 +78,44 @@ LCD_D5 = VIA_P5
 LCD_D6 = VIA_P6
 LCD_D7 = VIA_P7
 
-PS2_CLK    = VIA_P0
-PS2_DATA   = VIA_P1
-SPI_CLK    = VIA_P2
-SPI_MISO   = VIA_P3
-SPI_MOSI   = VIA_P4
-SPI_CS_SD  = VIA_P5
-SPI_CS_RTC = VIA_P6
-PIN_UNUSED = VIA_P7
+
+;
+; PS/2 Ports and Pins
+;
+PS2_PORT = VIA2_PORTA
+PS2_DDR  = VIA2_DDRA
+
+PS2_CLK  = VIA_P6
+PS2_DATA = VIA_P7
 
 
-SNES_CLK   = VIA_P0
-SNES_LATCH = VIA_P1
-SNES_DATA1 = VIA_P2
-SNES_DATA2 = VIA_P3
+;
+; SPI Ports and Pins
+;
+SPI_PORT = VIA2_PORTB
+SPI_DDR  = VIA2_DDRB
+SPI_SR   = VIA2_SR
+SPI_ACR  = VIA2_ACR
+
+spi_device_sdcard	  = %00011100 ;spi device number 1110??? (SPI_SS1)
+spi_device_keyboard = %00011010 ;spi device number 1101??? (SPI_SS2)
+spi_device_rtc	  	= %00010110 ;spi device number 1011??? (SPI_SS3)
+spi_device_deselect = %00011110 ; deselect any device
+SDCARD_DETECT			= VIA_P6
+
+
+;
+; SNES Ports and Pins
+;
+SNES_PORT = VIA2_PORTA
+SNES_DDR  = VIA2_DDRA
+
+SNES_CLK   = VIA_P1
+SNES_LATCH = VIA_P2
+SNES_DATA1 = VIA_P3
+SNES_DATA2 = VIA_P4
+
+
 
 
 ACIA1_DATA    = __ACIA1_START__ + $00

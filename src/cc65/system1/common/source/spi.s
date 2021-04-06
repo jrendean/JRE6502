@@ -1,73 +1,122 @@
 
 .include "io.inc"
+.include "zeropage.inc"
 
-.export spi_readbyte, spi_writebyte, spi_waitresult
+; 
+; https://bitbucket.org/steckschwein/steckschwein-code/src/master/steckos/libsrc/spi/
+; 
 
+.export spi_select_device, spi_deselect, spi_r_byte, spi_rw_byte
 
+EOK = 0
+EBUSY = 6
 
-spi_readbyte:
-  ; Enable the card and tick the clock 8 times with MOSI high, 
-  ; capturing bits from MISO and returning them
-
-  ldx #8                      ; we'll read 8 bits
-@loop:
-
-  lda #SPI_MOSI                ; enable card (CS low), set MOSI (resting state), SCK low
-  sta VIA2_PORTB
-
-  lda #SPI_MOSI | SPI_CLK       ; toggle the clock high
-  sta VIA2_PORTB
-
-  lda VIA2_PORTB                   ; read next bit
-  and #SPI_MISO
-
-  clc                         ; default to clearing the bottom bit
-  beq @bitnotset              ; unless MISO was set
-  sec                         ; in which case get ready to set the bottom bit
-@bitnotset:
-
-  tya                         ; transfer partial result from Y
-  rol                         ; rotate carry bit into read result
-  tay                         ; save partial result back to Y
-
-  dex                         ; decrement counter
-  bne @loop                   ; loop if we need to read more bits
-
-  rts
+.code
 
 
+  ; select spi device given in A. the method is aware of the current processor state, especially the interrupt flag
+  ; in:
+  ;    A = spi device - one of
+  ;        spi_device_sdcard    =   %00011100 ;spi device number 1110??? (SPI_SS1)
+  ;        spi_device_keyboard =   %00011010 ;spi device number 1101??? (SPI_SS2)
+  ;        spi_device_rtc        =   %00010110 ;spi device number 1011??? (SPI_SS3)
+  ; out:
+  ;    Z = 1 spi for given device could be selected (not busy), Z=0 otherwise
+  spi_select_device:
+        php
+        sei ;critical section start
+        pha
 
-spi_writebyte:
-  ; Tick the clock 8 times with descending bits on MOSI
-  ; SD communication is mostly half-duplex so we ignore anything it sends back here
+        ;check busy and select within sei => !ATTENTION! is busy check and spi device select must be "atomic", otherwise the spi state may change in between
+        ;    Z=1 not busy, Z=0 spi is busy and A=#EBUSY
+  spi_isbusy:
+        lda SPI_PORT
+        and #%00011110
+        cmp #%00011110
+        bne @l_exit        ;busy, leave section, device could not be selected
 
-  ldx #8                      ; send 8 bits
+        pla
+        sta SPI_PORT
 
-@loop:
-  asl                         ; shift next bit into carry
-  tay                         ; save remaining bits for later
-
-  lda #0
-  bcc @sendbit                ; if carry clear, don't set MOSI for this bit
-  ora #SPI_MOSI
-
-@sendbit:
-  sta VIA2_PORTB                   ; set MOSI (or not) first with SCK low
-  eor #SPI_CLK
-  sta VIA2_PORTB                   ; raise SCK keeping MOSI the same, to send the bit
-
-  tya                         ; restore remaining bits to send
-
-  dex
-  bne @loop                   ; loop if there are more bits to send
-
-  rts
+        plp
+        lda #EOK            ;exit ok
+        rts
+  @l_exit:
+        pla
+        plp                ;restore P (interrupt flag)
+        lda #EBUSY
+        rts
 
 
 
-spi_waitresult:
-  ; Wait for the SD card to return something other than $ff
-  jsr spi_readbyte
-  cmp #$ff
-  beq spi_waitresult
-  rts
+  spi_deselect:
+        pha
+        lda #spi_device_deselect
+        sta SPI_PORT
+        pla
+        rts
+
+
+;----------------------------------------------------------------------------------------------
+; Receive byte VIA SPI
+; Received byte in A at exit, Z, N flags set accordingly to A
+; Destructive: A,X
+;----------------------------------------------------------------------------------------------
+spi_r_byte:
+        lda SPI_PORT    ; Port laden
+        AND #$fe          ; Takt ausschalten
+        TAX                         ; aufheben
+        INC
+
+        STA SPI_PORT ; Takt An 1
+        STX SPI_PORT ; Takt aus
+        STA SPI_PORT ; Takt An 2
+        STX SPI_PORT ; Takt aus
+        STA SPI_PORT ; Takt An 3
+        STX SPI_PORT ; Takt aus
+        STA SPI_PORT ; Takt An 4
+        STX SPI_PORT ; Takt aus
+        STA SPI_PORT ; Takt An 5
+        STX SPI_PORT ; Takt aus
+        STA SPI_PORT ; Takt An 6
+        STX SPI_PORT ; Takt aus
+        STA SPI_PORT ; Takt An 7
+        STX SPI_PORT ; Takt aus
+        STA SPI_PORT ; Takt An 8
+        STX SPI_PORT ; Takt aus
+
+        lda SPI_SR
+        rts
+
+
+;----------------------------------------------------------------------------------------------
+; Transmit byte VIA SPI
+; Byte to transmit in A, received byte in A at exit
+; Destructive: A,X,Y
+;----------------------------------------------------------------------------------------------
+spi_rw_byte:
+        sta spi_sr    ; zu transferierendes byte im akku retten
+
+        ldx #$08
+
+        lda SPI_PORT    ; Port laden
+        and #$fe          ; SPICLK loeschen
+
+        asl                ; Nach links rotieren, damit das bit nachher an der richtigen stelle steht
+        tay                 ; bunkern
+
+@l:
+        rol spi_sr
+        tya                ; portinhalt
+        ror                ; datenbit reinschieben
+
+        sta SPI_PORT    ; ab in den port
+        inc SPI_PORT    ; takt an
+        sta SPI_PORT    ; takt aus
+
+        dex
+        bne @l            ; schon acht mal?
+
+        lda SPI_SR        ; Schieberegister auslesen
+
+        rts

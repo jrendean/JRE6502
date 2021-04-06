@@ -1,77 +1,159 @@
 
 
 .include "io.inc"
+.include "zeropage.inc"
 
-.import spi_readbyte, spi_writebyte, spi_waitresult
+;
+; https://bitbucket.org/steckschwein/steckschwein-code/src/master/steckos/libsrc/ds1306/rtc.s
+;
 
-.export rtc_init, rtc_gettime, rtc_settime
+.import spi_select_device, spi_deselect, spi_r_byte, spi_rw_byte
+
+;.export spi_select_rtc
+.export rtc_settime
+.export rtc_systime_update
+.export rtc_init
+
+;----------------------------------------------------------------------------
+; last known timestamp with date set to 1970-01-01
+;rtc_systime_t = $0300
+
+; read rtc
+rtc_read = 0
+rtc_write = $80
+
+rtc_ctrlreg = $0f
+
+
+.code
+
+; ; out:
+; ;    Z=1 spi for rtc could be selected (not busy), Z=0 otherwise
+; spi_select_rtc:
+;    lda #spi_device_rtc
+;    jmp spi_select_device
+
+
 
 rtc_init:
+    ; disable RTC interrupts
+    ; Select SPI SS for RTC
+    lda #spi_device_rtc
+    jsr spi_select_device
+    lda #rtc_write | rtc_ctrlreg
+    jsr spi_rw_byte
+    lda #$00 ; disable INT0, INT1, WP (Write Protect)
+    jsr spi_rw_byte
+    jsr spi_deselect
 
+    jmp rtc_systime_update
 
-  lda #rtc_write | rtc_control
-  jsr spi_writebyte
-  lda #$00 ; disable INT0, INT1, WP (Write Protect)
-  jsr spi_writebyte
-
-  rts
-
-
-
-rtc_gettime:
-  pha
-  
-  lda #SPI_MOSI           ; pull CS low to begin command
-  sta VIA2_PORTB
-
-  pla
-  ;lda #$00
-  jsr spi_writebyte
-
-  ;jsr spi_readbyte
-  pha
-
-  ; Debug print the result code
-  ;jsr print_hex
-
-  ; End command
-  lda #SPI_CS_RTC | SPI_MOSI   ; set CS high again
-  sta VIA2_PORTB
-
-  pla   ; restore result code
-
-  rts
+    rts
 
 
 
 rtc_settime:
-  pha
+    lda #spi_device_rtc
+    jsr spi_select_device
+    
+  lda #rtc_write
+  jsr spi_rw_byte
   
-  lda #SPI_MOSI           ; pull CS low to begin command
-  sta VIA2_PORTB
+  ; second
+  lda #00
+  jsr spi_rw_byte
+  
+  ; minute
+  lda #%00100001
+  jsr spi_rw_byte
 
-  lda #rtc_write | $02
-  jsr spi_writebyte
+  ; hour
+  lda #%00100000
+  jsr spi_rw_byte
 
-  pla
-  jsr spi_writebyte
-  pha
+  ; day of the week
+  lda #7
+  jsr spi_rw_byte
 
-  ; Debug print the result code
-  ;jsr print_hex
+  ; date
+  lda #4
+  jsr spi_rw_byte
 
-  ; End command
-  lda #SPI_CS_RTC | SPI_MOSI   ; set CS high again
-  sta VIA2_PORTB
+  ; month
+  lda #4
+  jsr spi_rw_byte
 
-  pla   ; restore result code
+  ; year
+  lda #%00100001
+  jsr spi_rw_byte
 
+  jsr spi_deselect
   rts
 
 
 
-.rodata
-  rtc_read = $00
-  rtc_write = $80
-  rtc_control = $0F
-  rtc_nvram = $20
+
+;in:
+;  -
+;out:
+;  - rtc_systime_t updated
+rtc_systime_update:
+   lda #spi_device_rtc
+   jsr spi_select_device
+    beq :+
+    rts
+:    ;debug "update systime"
+    lda #0                ;0 means rtc read, start from first address (seconds)
+    jsr spi_rw_byte
+
+    jsr spi_r_byte      ;seconds
+    jsr BCD2dec
+    sta rtc_systime_t+time_t::tm_sec
+
+    jsr spi_r_byte      ;minute
+    jsr BCD2dec
+    sta rtc_systime_t+time_t::tm_min
+
+    jsr spi_r_byte      ;hour
+    jsr BCD2dec
+    sta rtc_systime_t+time_t::tm_hour
+
+    jsr spi_r_byte      ;week day
+    sta rtc_systime_t+time_t::tm_wday
+
+    jsr spi_r_byte                          ;day of month
+    jsr BCD2dec
+    sta rtc_systime_t+time_t::tm_mday
+
+    jsr spi_r_byte                          ;month
+    ;dec                                        ;dc1306 gives 1-12, but 0-11 expected
+    jsr BCD2dec
+    sta rtc_systime_t+time_t::tm_mon
+
+    jsr spi_r_byte                        ;year value - rtc year 2000+year register
+    jsr BCD2dec
+    ;clc
+    ;adc #100                                ;time_t year starts from 1900
+    sta rtc_systime_t+time_t::tm_year
+    ;debug32 "rtc0", rtc_systime_t
+    ;debug32 "rtc1", rtc_systime_t+4
+    jsr spi_deselect
+   sec
+   rts
+
+; dec = (((BCD>>4)*10) + (BCD&0xf))
+BCD2dec:
+  tax
+    and #%00001111
+    sta tmp1
+    txa
+    and #%11110000        ; highbyte => 10a = 8a + 2a
+    lsr                     ; 2a
+    sta tmp2
+    lsr                      ;
+    lsr                      ; 8a
+    adc tmp2      ; = *10
+    adc tmp1
+    rts
+
+

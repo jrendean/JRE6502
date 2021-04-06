@@ -142,12 +142,13 @@
 ;kbportddr      =     $7f03             ; 6522 IO data direction register B
 ;clk            =     $10               ; 6522 IO port clock bit mask (PB4)
 ;data           =     $20               ; 6522 IO port data bit mask  (PB5)
-kbportreg      =     VIA2_PORTB
-kbportddr      =     VIA2_DDRB
+kbportreg      =     PS2_PORT
+kbportddr      =     PS2_DDR
 ;clk            =     VIA_PB4
 ;data           =     VIA_PB5
-clk            =     VIA_P0
-data           =     VIA_P1
+clk            =     PS2_CLK
+data           =     PS2_DATA
+
 
 ; NOTE: some locations use the inverse of the bit masks to change the state of 
 ; bit.  You will have to find them and change them in the code acordingly.
@@ -439,7 +440,8 @@ kbccmd:         .word kbtrap83          ;
 KBSCAN:         ldx   #$05              ; timer: x = (cycles - 40)/13   (105-40)/13=5
                lda   kbportddr         ; 
                ;and   #$CF              ; set clk to input (change if port bits change)
-               and   #$FC              ; set clk to input (change if port bits change)
+               ;and   #$FC              ; set clk to input (change if port bits change)
+               and   #$3F              ; set clk to input (change if port bits change)
                sta   kbportddr         ; 
 kbscan1:        lda   #clk              ; 
                bit   kbportreg         ; 
@@ -466,12 +468,14 @@ kbsend:         sta   byte              ; save byte to send
                sta   lastbyte          ; keep just in case the send fails
                lda   kbportreg         ; 
                ;and   #$EF              ; clk low, data high (change if port bits change)
-               and   #$FE              ; clk low, data high (change if port bits change)
+               ;and   #$FE              ; clk low, data high (change if port bits change)
+               and   #$BF              ; clk low, data high (change if port bits change)
                ora   #data             ; 
                sta   kbportreg         ; 
                lda   kbportddr         ; 
                ;ora   #$30              ;  bit bits high (change if port bits change)
-               ora   #$03              ;  bit bits high (change if port bits change)
+               ;ora   #$03              ;  bit bits high (change if port bits change)
+               ora   #$C0              ;  bit bits high (change if port bits change)
                sta   kbportddr         ; set outputs, clk=0, data=1
                lda   #$10              ; 1Mhz cpu clock delay (delay = cpuclk/62500)
 kbsendw:        dec                     ; 
@@ -479,19 +483,22 @@ kbsendw:        dec                     ;
                ldy   #$00              ; parity counter
                ldx   #$08              ; bit counter 
                lda   kbportreg         ; 
-               ;and   #$CF              ; clk low, data low (change if port bits change)
-               and   #$FC              ; clk low, data low (change if port bits change)
+               ;and   #$CF              ; set clk to input (change if port bits change)
+               ;and   #$FC              ; set clk to input (change if port bits change)
+               and   #$3F              ; set clk to input (change if port bits change)
                sta   kbportreg         ; 
                lda   kbportddr         ; 
                ;and   #$EF              ; set clk as input (change if port bits change)
-               and   #$FE              ; set clk as input (change if port bits change)
+               ;and   #$FE              ; set clk as input (change if port bits change)
+               and   #$BF              ; set clk as input (change if port bits change)
                sta   kbportddr         ; set outputs
                jsr   kbhighlow         ; 
 kbsend1:        ror   byte              ; get lsb first
                bcs   kbmark            ; 
                lda   kbportreg         ; 
                ;and   #$DF              ; turn off data bit (change if port bits change)
-               and   #$FD              ; turn off data bit (change if port bits change)
+               ;and   #$FD              ; turn off data bit (change if port bits change)
+               and   #$7F              ; turn off data bit (change if port bits change)
                sta   kbportreg         ; 
                bra   kbnext            ; 
 kbmark:         lda   kbportreg         ; 
@@ -510,12 +517,14 @@ kbnext:         jsr   kbhighlow         ;
                bra   kback             ; 
 kbpclr:         lda   kbportreg         ; 
                ;and   #$DF              ; send data=0 (change if port bits change)
-               and   #$FD              ; send data=0 (change if port bits change)
+               ;and   #$FD              ; send data=0 (change if port bits change)
+               and   #$7F              ; send data=0 (change if port bits change)
                sta   kbportreg         ; 
 kback:          jsr   kbhighlow         ; 
                lda   kbportddr         ; 
-               ;and   #$CF              ; set clk & data to input (change if port bits change)
-               and   #$FC              ; set clk & data to input (change if port bits change)
+               ;and   #$CF              ; set clk to input (change if port bits change)
+               ;and   #$FC              ; set clk to input (change if port bits change)
+               and   #$3F              ; set clk to input (change if port bits change)
                sta   kbportddr         ; 
                ply                     ; restore saved registers
                plx                     ; 
@@ -539,7 +548,8 @@ KBGET:          phx                     ;
                ldx   #$08              ; bit counter 
                lda   kbportddr         ; 
                ;and   #$CF              ; set clk to input (change if port bits change)
-               and   #$FC              ; set clk to input (change if port bits change)
+               ;and   #$FC              ; set clk to input (change if port bits change)
+               and   #$3F              ; set clk to input (change if port bits change)
                sta   kbportddr         ; 
 kbget1:         lda   #clk              ; 
                bit   kbportreg         ; 
@@ -551,6 +561,7 @@ kbget2:         jsr   kbhighlow         ; wait for clk to return high then go lo
                cmp   #$01              ; set c if data bit=1, clr if data bit=0
                                        ; (change if port bits change) ok unless data=01 or 80
                                        ; in that case, use ASL or LSR to set carry bit
+               
                ror   byte              ; save bit to byte holder
                bpl   kbget3            ; 
                iny                     ; add 1 to parity counter
@@ -575,11 +586,13 @@ kbget4:         tya                     ; get parity count
 ;
 kbdis:          lda   kbportreg         ; disable kb from sending more data
                ;and   #$EF              ; clk = 0 (change if port bits change)
-               and   #$FE              ; clk = 0 (change if port bits change)
+               ;and   #$FE              ; clk = 0 (change if port bits change)
+               and   #$BF              ; clk = 0 (change if port bits change)
                sta   kbportreg         ; 
                lda   kbportddr         ; set clk to ouput low
-               ;and   #$CF              ; (stop more data until ready) (change if port bits change)
-               and   #$FC              ; (stop more data until ready) (change if port bits change)
+               ;and   #$CF              ; set clk to input (change if port bits change)
+               ;and   #$FC              ; set clk to input (change if port bits change)
+               and   #$3F              ; set clk to input (change if port bits change)
                ora   #clk              ; 
                sta   kbportddr         ; 
                rts                     ; 

@@ -6,24 +6,43 @@
 
 via_init:
 
-.if lcd_type=20
-  ; PA0 LED, PA1 - PA7 LCD
-  lda #(PIN_LED | LCD_RS | LCD_RW | LCD_E1 | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
-  sta VIA2_DDRA
-.elseif lcd_type=40
-  ; still enable led
-  lda #PIN_LED
-  sta VIA2_DDRA
+  .if lcd_type=20
+    ; PA0 LED, PA1 - PA7 LCD
+    lda #(PIN_LED | LCD_RS | LCD_RW | LCD_E1 | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
+    sta VIA2_DDRA
+  .elseif lcd_type=40
+    ; still enable led
+    lda #PIN_LED
+    sta VIA2_DDRA
 
-  ; extra via ports
-  lda #(LCD_E2 | LCD_RS | LCD_RW | LCD_E1 | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
-  sta VIA1_DDRA
-.endif
+    ; extra via ports
+    lda #(LCD_E2 | LCD_RS | LCD_RW | LCD_E1 | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
+    sta VIA1_DDRA
+  .endif
 
-  ; PB0 & PB1 are PS2
-  ; PB3 - PB6 is for SPI
-  ; PB7 - unusded
-  lda #(SPI_CLK | SPI_MOSI | SPI_CS_SD | SPI_CS_RTC)
-  sta VIA2_DDRB
+
+
+
+  ; P0 and C1 - spi clk
+  ; P1 - P4 - select lines
+  ; P5 - write protect??
+  ; P6 - card detect
+  ; P7 - MOSI
+  ; C2 - MISO
+
+  ; init shift register and port b for SPI use
+  ; SR shift in, External clock on CB1
+  lda #%00001100
+  sta SPI_ACR
+
+  ; Port b bit 6 and 5 input for sdcard and write protect detection, rest all outputs
+  lda #%10011111
+  sta SPI_DDR
+
+  ; SPICLK low, MOSI low, SPI_SS HI
+  lda #spi_device_deselect
+  sta SPI_PORT
+
+
 
   rts

@@ -41,6 +41,11 @@ PICOCOM_FLAGS=-b 19200 -fn --send-cmd 'sz -X'
 PYTHON_BINARY=python
 PYTHON_PROGRAM=../../common/loadtrim.py
 
+
+ifndef LCD_TYPE
+LCD_TYPE=40
+endif
+
 # Build folder
 ifeq ($(BUILD_TYPE),load)
 BUILD_ROOT=../../build
@@ -52,7 +57,6 @@ ROM_FOLDER=$(BUILD_ROOT)/$(BUILD_TYPE)
 COMMON_BUILD_FOLDER=$(BUILD_ROOT)/common
 
 # Include folders
-
 ifeq ($(BUILD_TYPE),load)
 COMMON_ROOT=../../common
 else

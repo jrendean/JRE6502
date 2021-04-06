@@ -46,3 +46,15 @@ lcd_column:       .res 1
 
 controller1: .res 3
 controller2: .res 3
+
+
+
+; SDCARD/storage block pointer
+read_blkptr: .res 2 ;  	= $f4
+write_blkptr: .res 2 ; 	= $f6
+sd_tmp: .res 1 ;		= $f8
+
+; spi shift register location
+spi_sr: .res 1;      = $f9
+__volatile_ptr: .res 2 ; = $fa
+__volatile_tmp: .res 1 ; = $fc

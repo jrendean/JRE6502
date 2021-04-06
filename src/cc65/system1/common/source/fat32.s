@@ -2,7 +2,7 @@
 
 .include "zeropage.inc"
 
-.import sd_readsector
+.import sd_read_block
 
 .export fat32_init, fat32_openroot, fat32_opendirent, fat32_readdirent, fat32_finddirent, fat32_file_read, fat32_file_readbyte
 
@@ -39,7 +39,7 @@ fat32_init:
   sta zp_sd_address+1
 
   ; Do the read
-  jsr sd_readsector
+  jsr sd_read_block
 
 
   inc fat32_errorstage ; stage 1 = boot sector signature check
@@ -89,7 +89,7 @@ fat32_init:
   lda fat32_readbuffer+$1c9,x
   sta zp_sd_currentsector+3
 
-  jsr sd_readsector
+  jsr sd_read_block
 
 
   inc fat32_errorstage ; stage 3 = BPB signature check
@@ -222,7 +222,7 @@ fat32_seekcluster:
   sta zp_sd_address+1
 
   ; Read the sector from the FAT
-  jsr sd_readsector
+  jsr sd_read_block
 
   ; Before using this FAT data, set currentsector ready to read the cluster itself
   ; We need to multiply the cluster number minus two by the number of sectors per 
@@ -351,7 +351,7 @@ fat32_readnextsector:
   sta zp_sd_address+1
 
   ; Read the sector
-  jsr sd_readsector
+  jsr sd_read_block
 
   ; Advance to next sector
   inc zp_sd_currentsector

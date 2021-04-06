@@ -6,6 +6,4 @@ COMMON_DEPS=led.o utils.o
 
 C_SOURCES=
 
-LCD_TYPE=20
-
 include ../../common/makefile
