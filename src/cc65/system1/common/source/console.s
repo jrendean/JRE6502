@@ -108,7 +108,7 @@
     pha
     phy
 
-    sta tmp1
+    sta tmp1  ; max buffer length
 
     lda #$00
     ldy #$00
@@ -132,7 +132,7 @@
     bpl @get_char 
 
     cpy tmp1
-    beq @done
+    beq @done   ; hit the max buffer size, we are done regardless of more data
     ;beq @get_char
 
     jsr console_write_byte ; echo back to terminal

@@ -10,7 +10,7 @@
 .code
 
   dump_registers:
-    php
+    ;php
     phy
     phx
     pha
@@ -30,65 +30,71 @@
     pla ; pull y
     jsr console_write_hex
 
-    ;jsr primm_console
-    ;.asciiz ", SP=$"
-    ;tsx
-    ;txa
-    ;jsr console_write_hex
-
     jsr primm_console
-    .asciiz ", P="
+    .asciiz ", SP=$"
+    tsx
+    txa
+    jsr console_write_hex
+
+
+    php
+    jsr primm_console
+    .asciiz ", P=$"
     pla ; pull p
     sta tmp1 ; save off
+    jsr console_write_hex
+    lda #' '
+    jsr console_write_byte
+    lda tmp1
     and #$80
     beq @n0
-    lda #'n'
+    lda #'N'
     bra @n1
-    @n0: lda #'N'
+    @n0: lda #'n'
     @n1: jsr console_write_byte
     lda tmp1
     and #$40
     beq @v0
-    lda #'v'
+    lda #'V'
     bra @v1
-    @v0: lda #'V'
+    @v0: lda #'v'
     @v1: jsr console_write_byte
     lda #'-'
     jsr console_write_byte
     lda tmp1
     and #$10
     beq @b0
-    lda #'b'
+    lda #'B'
     bra @b1
-    @b0: lda #'B'
+    @b0: lda #'b'
     @b1: jsr console_write_byte
     lda tmp1
     and #$08
     beq @d0
-    lda #'d'
+    lda #'D'
     bra @d1
-    @d0: lda #'D'
+    @d0: lda #'d'
     @d1: jsr console_write_byte
     lda tmp1
     and #$04
     beq @i0
-    lda #'i'
+    lda #'I'
     bra @i1
-    @i0: lda #'I'
+    @i0: lda #'i'
     @i1: jsr console_write_byte
     lda tmp1
     and #$02
     beq @z0
-    lda #'z'
+    lda #'Z'
     bra @z1
-    @z0: lda #'Z'
+    @z0: lda #'z'
     @z1: jsr console_write_byte
     lda tmp1
     and #$01
     beq @c0
-    lda #'c'
+    lda #'C'
     bra @c1
-    @c0: lda #'C'
+    @c0: lda #'c'
     @c1: jsr console_write_byte
     jsr console_write_newline
 

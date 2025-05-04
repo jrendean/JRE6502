@@ -1,3 +1,7 @@
+
+.ifndef IO_INC
+IO_INC = 1
+
 ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/io.inc65
 ;https://github.com/peternoyes/dodo/tree/master/src
 
@@ -9,12 +13,12 @@ VIA1_PORTB = __VIA1_START__ + 0
 VIA1_PORTA = __VIA1_START__ + 1
 VIA1_DDRB  = __VIA1_START__ + 2
 VIA1_DDRA  = __VIA1_START__ + 3
-VIA1_T1C_L = __VIA1_START__ + 4
-VIA1_T1C_H = __VIA1_START__ + 5
-VIA1_T1L_L = __VIA1_START__ + 6
-VIA1_T1L_H = __VIA1_START__ + 7
-VIA1_T2C_L = __VIA1_START__ + 8
-VIA1_T2C_H = __VIA1_START__ + 9
+VIA1_T1CL  = __VIA1_START__ + 4
+VIA1_T1CH  = __VIA1_START__ + 5
+VIA1_T1LL  = __VIA1_START__ + 6
+VIA1_T1LH  = __VIA1_START__ + 7
+VIA1_T2CL  = __VIA1_START__ + 8
+VIA1_T2CH  = __VIA1_START__ + 9
 VIA1_SR    = __VIA1_START__ + 10
 VIA1_ACR   = __VIA1_START__ + 11
 VIA1_PCR   = __VIA1_START__ + 12
@@ -26,12 +30,12 @@ VIA2_PORTB = __VIA2_START__ + 0
 VIA2_PORTA = __VIA2_START__ + 1
 VIA2_DDRB  = __VIA2_START__ + 2
 VIA2_DDRA  = __VIA2_START__ + 3
-VIA2_T1C_L = __VIA2_START__ + 4
-VIA2_T1C_H = __VIA2_START__ + 5
-VIA2_T1L_L = __VIA2_START__ + 6
-VIA2_T1L_H = __VIA2_START__ + 7
-VIA2_T2C_L = __VIA2_START__ + 8
-VIA2_T2C_H = __VIA2_START__ + 9
+VIA2_T1CL  = __VIA2_START__ + 4
+VIA2_T1CH  = __VIA2_START__ + 5
+VIA2_T1LL  = __VIA2_START__ + 6
+VIA2_T1LH  = __VIA2_START__ + 7
+VIA2_T2CL  = __VIA2_START__ + 8
+VIA2_T2CH  = __VIA2_START__ + 9
 VIA2_SR    = __VIA2_START__ + 10
 VIA2_ACR   = __VIA2_START__ + 11
 VIA2_PCR   = __VIA2_START__ + 12
@@ -98,7 +102,7 @@ SPI_SR   = VIA2_SR
 SPI_ACR  = VIA2_ACR
 
 spi_device_sdcard	  = %00011100 ;spi device number 1110??? (SPI_SS1)
-spi_device_keyboard = %00011010 ;spi device number 1101??? (SPI_SS2)
+spi_device_ra8875   = %00011010 ;spi device number 1101??? (SPI_SS2)
 spi_device_rtc	  	= %00010110 ;spi device number 1011??? (SPI_SS3)
 spi_device_deselect = %00011110 ; deselect any device
 SDCARD_DETECT			= VIA_P6
@@ -176,3 +180,5 @@ ACIA_STATUS_RX_FULL    = 1 << 3
 ACIA_STATUS_OVERRUN    = 1 << 2
 ACIA_STATUS_FRAME_ERR  = 1 << 1
 ACIA_STATUS_PARITY_ERR = 1 << 0
+
+.endif

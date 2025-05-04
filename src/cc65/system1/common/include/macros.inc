@@ -1,4 +1,6 @@
 
+.ifndef MACROS_INC
+MACROS_IN = 1
 
 ; 
 .macro loadptr src, dest
@@ -125,3 +127,4 @@
 	sta wordb+1
 .endmacro
 
+.endif

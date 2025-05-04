@@ -36,7 +36,9 @@ via_init:
   sta SPI_ACR
 
   ; Port b bit 6 and 5 input for sdcard and write protect detection, rest all outputs
-  lda #%10011111
+  ;lda #%10011111
+  ;set 6 to output to test ra8875
+  lda #%11011111
   sta SPI_DDR
 
   ; SPICLK low, MOSI low, SPI_SS HI

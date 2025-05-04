@@ -22,6 +22,7 @@ tmp4:        .res 1
 
 console_out_ptr: .res 2
 lcd_out_ptr: .res 2
+ra8875_out_ptr: .res 2
 
 zp_sd_address:           .res 2  ; 2 bytes
 zp_sd_currentsector:     .res 4  ; 4 bytes
@@ -56,5 +57,3 @@ sd_tmp: .res 1 ;		= $f8
 
 ; spi shift register location
 spi_sr: .res 1;      = $f9
-__volatile_ptr: .res 2 ; = $fa
-__volatile_tmp: .res 1 ; = $fc

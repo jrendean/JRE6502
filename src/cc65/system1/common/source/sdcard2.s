@@ -57,26 +57,26 @@ sd_card_error_timeout = $c1
 
 .code
 
-;    out:
-;      Z=1 sd card available, Z=0 otherwise A=ENODEV
-sdcard_detect:
-        lda SPI_PORT
-        and #SDCARD_DETECT
-        rts
+  ;    out:
+  ;      Z=1 sd card available, Z=0 otherwise A=ENODEV
+  sdcard_detect:
+    lda SPI_PORT
+    and #SDCARD_DETECT
+    rts
 
-;---------------------------------------------------------------------
-; Init SD Card
-; Destructive: A, X, Y
-;
-;    out:  Z=1 on success, Z=0 otherwise
-;
-;---------------------------------------------------------------------
-sdcard_init:
-        lda #spi_device_sdcard
-        jsr spi_select_device
-        beq @init
-        rts
-@init:
+  ;---------------------------------------------------------------------
+  ; Init SD Card
+  ; Destructive: A, X, Y
+  ;
+  ;    out:  Z=1 on success, Z=0 otherwise
+  ;
+  ;---------------------------------------------------------------------
+  sdcard_init:
+      lda #spi_device_sdcard
+      jsr spi_select_device
+      beq @init
+      rts
+    @init:
         ; 74 SPI clock cycles - !!!Note: spi clock cycle should be in range 100-400Khz!!!
             ldx #74
 

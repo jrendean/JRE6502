@@ -1,3 +1,8 @@
+
+.ifndef ZEROPAGE_INC
+ZEROPAGE_INC = 1
+
+
 .globalzp sp
 .globalzp sreg
 .globalzp regsave
@@ -14,6 +19,7 @@
 
 .globalzp console_out_ptr
 .globalzp lcd_out_ptr
+.globalzp ra8875_out_ptr
 
 .globalzp zp_sd_address
 .globalzp zp_sd_currentsector
@@ -43,7 +49,7 @@
 .globalzp read_blkptr, write_blkptr
 .globalzp sd_tmp
 
-.globalzp __volatile_ptr
+
 
 
 
@@ -53,9 +59,7 @@ blocks			= $0284		; 3 bytes blocks to read, 3 bytes sufficient to address 4GB ->
 
 ;----------------------------------------------------------------------------
 ; last known timestamp with date set to 1970-01-01
-rtc_systime_t = $0300
-
-
+rtc_systime_t = $0300 
 
 
 ;----------------------------------------------------------------------------
@@ -64,10 +68,11 @@ rtc_systime_t = $0300
 		  tm_sec	.byte		;0-59
 		  tm_min	.byte		;0-59
 		  tm_hour	.byte		;0-23
+		  tm_wday	.byte		;
 		  tm_mday	.byte		;1-31
 		  tm_mon	.byte	;1	;0-11 0-jan, 11-dec
 		  tm_year	.byte  ;70	;years since 1900
-		  tm_wday	.byte		;
- ;		 tm_yday
-  ;		tm_isdst
 .endstruct
+
+
+.endif

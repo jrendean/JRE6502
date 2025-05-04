@@ -17,11 +17,12 @@
 .import rtc_init, rtc_settime, rtc_systime_update
 .import mem_clear
 .import joystick_scan, joystick_get, joystick_test
+;.import ra8875_init, ra8875_writetext
 
 .import b2ad
 
 ; define vector
-.segment "VECTORS" ;defined in firmware.cfg starting at $7FFA
+.segment "VECTORS" ;defined in firmware.cfg starting at $FFFA
 
     .word   nmi     ; $FFFA-$FFFB - MNI
     .word   reset   ; $FFFC-$FFFD - Reset
@@ -29,260 +30,315 @@
 
 .code
 
+
   nmi:
-    rti
+      rti
 
+
+  ; http://wilsonminesco.com/6502interrupts/index.html
   irq:
-    ;jsr led_flash
-    
-    is_vi2_timer:
-      lda   VIA2_IFR      ; Read the Interrupt Flag Register from VIA1
-      and   #$40
-      bne   via2_timer1      ; If it's the timer flag then execute timer routine
-      
-    via2_timer1:
+      pha
+      phx
+      phy
 
-    @irq_end:
+      bit  VIA1_IFR   ; Check 6522 VIA1's status register without loading.
+      bmi  @service_via1  ; If it caused the interrupt, branch to service it.
+      bit  VIA2_IFR   ; Otherwise, check VIA2's status register.
+      bmi  @service_via2
+      jmp @irq_done
+
+    @service_via1:
+      BIT   VIA1_T1CL
+      jsr joystick_scan
+    @service_via2:
+      BIT   VIA2_T1CL
+      ;jsr led_flash
+      ;jsr joystick_scan
+
+    @irq_done:
+      ply
+      plx
+      pla
+
       rti
 
 
 
   reset:
-    cld
-    sei
-    ldx #$ff
-    txs
+      cld         ; clear decimal (use hex)
 
-    jsr initialize
+      sei         ; set interupt disable (do not take interupts)
+
+      ldx #$00    ; clear the zero page and stack
+    : stz $0000,x ;zero page
+      stz $0100,x ;user buffers and vars
+      inx
+      bne :-
+
+      ldx #$ff    ; load FF in to X register
+      txs         ; set the stack pointer to the top (00FF)
+
+      jsr initialize
+
+      cli         ; clear interupt disable (start taking interupts)
+
+
+
+
 
   loop:
 
-    ; print welcome message
-    loadptr terminal_message, console_out_ptr
-    jsr console_write_string
-
-  ;lda CNT+1
-  ;jsr console_write_hex
-  ;lda CNT
-  ;jsr console_write_hex
-  ;lda #$0D
-  ;jsr console_write_byte
-  
-
-;  loop:
-
-
-  loadptr console_buffer, ptr1
-  lda #BUFFLEN
-  jsr console_read_string
-
-
-  lda console_buffer
-  bne @actual_command
-  jmp loop
-
-@actual_command:
-  
-  loadptr cmd_on, ptr2
-  jsr str_compare
-  cmp #$00
-  beq @on
-
-  loadptr cmd_off, ptr2
-  jsr str_compare
-  cmp #$00
-  beq @off
-
-  loadptr cmd_xmodem, ptr2
-  jsr str_compare
-  cmp #$00
-  beq @xmodem
-
-  loadptr cmd_kbtest, ptr2
-  jsr str_compare
-  cmp #$00
-  beq @kbtest
-
-  loadptr cmd_debugger, ptr2
-  jsr str_compare
-  cmp #$00
-  beq @debugger
-
-
-  lda console_buffer
-  cmp #'s'
-  beq @snes
-
-  cmp #'t'
-  beq @time
-
-@unknown:
-  loadptr unknown_command, console_out_ptr
-  jsr console_write_string
-  jsr console_write_newline
-  jmp loop
-
-@on:
-  jsr led_on
-  jmp loop
-
-@off:
-  jsr led_off
-  jmp loop
-
-@xmodem:
-  jsr modem_receive
-  jsr $1000
-  jmp loop
-
-@kbtest:
-  jmp kbtest
-  jmp loop
-
-@debugger:
-  jsr debugger_run
-  jmp loop
-
-@snes:
-  jsr joystick_test
-  jmp loop
-
-@time:
-  jsr rtc_systime_update
-  jsr console_write_newline
-  lda rtc_systime_t+time_t::tm_hour
-  jsr b2ad
-  lda rtc_systime_t+time_t::tm_min
-  jsr b2ad
-  lda rtc_systime_t+time_t::tm_sec
-  jsr b2ad
-  jsr console_write_newline
-  lda rtc_systime_t+time_t::tm_mon
-  jsr b2ad
-  lda rtc_systime_t+time_t::tm_mday
-  jsr b2ad
-  lda rtc_systime_t+time_t::tm_year
-  jsr b2ad
-  jsr console_write_newline
-  jmp loop
+      ; print welcome message
+      loadptr terminal_message, console_out_ptr
+      jsr console_write_string
 
 
 
-  jmp loop
+      loadptr console_buffer, ptr1
+      lda #BUFFLEN
+      jsr console_read_string
 
 
-  kbtest:
-    jsr KBINIT            ; init the keyboard, LEDs, and flags
-  lp0:
-    jsr console_write_newline          ; prints 0D 0A (CR LF) to the terminal
-  lp1:
-    jsr KBINPUT           ; wait for a keypress, return decoded ASCII code in A
-    cmp #$0d              ; if CR, then print CR LF to terminal
-    beq lp0               ; 
-    cmp #$1B              ; esc ascii code
-    beq lp2               ; 
-    cmp #$20              ; 
-    bcc lp3               ; control key, print as <hh> except $0d (CR) & $2B (Esc)
-    cmp #$80              ; 
-    bcs lp3               ; extended key, just print the hex ascii code as <hh>
-    jsr console_write_byte            ; prints contents of A reg to the Terminal, ascii 20-7F
-    bra lp1               ; 
-  lp2:
-    jmp loop
-    ;rts                     ; done
-  lp3:
-    pha                     ; 
-    lda #$3C              ; <
-    jsr console_write_byte            ; 
-    pla                   ; 
-    jsr console_write_hex        ; print 1 byte in ascii hex
-    lda #$3E              ; >
-    jsr console_write_byte            ; 
-    bra lp1               ; 
+      lda console_buffer
+      bne @actual_command
+      jmp loop
+
+    @actual_command:
+      
+      loadptr cmd_on, ptr2
+      jsr str_compare
+      cmp #$00
+      beq @on
+
+      loadptr cmd_off, ptr2
+      jsr str_compare
+      cmp #$00
+      beq @off
+
+      loadptr cmd_xmodem, ptr2
+      jsr str_compare
+      cmp #$00
+      beq @xmodem
+
+      loadptr cmd_kbtest, ptr2
+      jsr str_compare
+      cmp #$00
+      beq @kbtest
+
+      loadptr cmd_debugger, ptr2
+      jsr str_compare
+      cmp #$00
+      beq @debugger
 
 
-initialize:
+      lda console_buffer
+      cmp #'s'
+      beq @snes
 
-  jsr mem_clear
+      cmp #'t'
+      beq @time
 
-  @init_console:
+      ;cmp #'y'
+      ;jsr rtc_settime
+
+      ;cmp #'h'
+      ;beq @ra8875
+
+    @unknown:
+      loadptr unknown_command, console_out_ptr
+      jsr console_write_string
+      jsr console_write_newline
+      jmp loop
+
+    @on:
+      jsr led_on
+      jmp loop
+
+    @off:
+      jsr led_off
+      jmp loop
+
+    @xmodem:
+      jsr modem_receive
+      jsr $1000
+      jmp loop
+
+    @kbtest:
+      jmp kbtest
+      jmp loop
+
+    @debugger:
+      jsr debugger_run
+      jmp loop
+
+    @snes:
+      ;;jsr joystick_test
+      ;jsr joystick_get
+      ;phy
+      ;phx
+      ;jsr console_write_hex
+      ;jsr console_write_newline
+      ;pla
+      ;jsr console_write_hex
+      ;jsr console_write_newline
+      ;pla
+      ;jsr console_write_hex
+      ;jsr console_write_newline
+      ;jmp loop
+
+      jsr joystick_test
+      jmp loop
+     
+
+
+
+
+    @time:
+      jsr rtc_systime_update
+      jsr console_write_newline
+      lda rtc_systime_t+time_t::tm_hour
+      jsr b2ad
+      lda #':'
+      jsr console_write_byte
+      lda rtc_systime_t+time_t::tm_min
+      jsr b2ad
+      lda #':'
+      jsr console_write_byte
+      lda rtc_systime_t+time_t::tm_sec
+      jsr b2ad
+      lda #' '
+      jsr console_write_byte
+      lda rtc_systime_t+time_t::tm_mon
+      jsr b2ad
+      lda #'/'
+      jsr console_write_byte
+      lda rtc_systime_t+time_t::tm_mday
+      jsr b2ad
+      lda #'/'
+      jsr console_write_byte
+      lda rtc_systime_t+time_t::tm_year
+      jsr b2ad
+      jsr console_write_newline
+      jmp loop
+
+    ; @ra8875:
+    ;   loadptr terminal_message, ra8875_out_ptr
+    ;   jsr ra8875_writetext
+    ;   jmp loop
+
+
+      jmp loop
+
+
+      kbtest:
+        jsr KBINIT            ; init the keyboard, LEDs, and flags
+      lp0:
+        jsr console_write_newline          ; prints 0D 0A (CR LF) to the terminal
+      lp1:
+        jsr KBINPUT           ; wait for a keypress, return decoded ASCII code in A
+        cmp #$0d              ; if CR, then print CR LF to terminal
+        beq lp0               ; 
+        cmp #$1B              ; esc ascii code
+        beq lp2               ; 
+        cmp #$20              ; 
+        bcc lp3               ; control key, print as <hh> except $0d (CR) & $2B (Esc)
+        cmp #$80              ; 
+        bcs lp3               ; extended key, just print the hex ascii code as <hh>
+        jsr console_write_byte            ; prints contents of A reg to the Terminal, ascii 20-7F
+        bra lp1               ; 
+      lp2:
+        jmp loop
+        ;rts                     ; done
+      lp3:
+        pha                     ; 
+        lda #$3C              ; <
+        jsr console_write_byte            ; 
+        pla                   ; 
+        jsr console_write_hex        ; print 1 byte in ascii hex
+        lda #$3E              ; >
+        jsr console_write_byte            ; 
+        bra lp1               ; 
+
+
+
+
+  initialize:
+
+    ; zero out all the RAM 
+    jsr mem_clear
+
+    ; initialize the console and write out
     jsr console_init
-  @init_console_success:
     jsr primm_console
     .byte $1B,"[2J",$1B,"[H",$1B,"[91mJRE6502",$1B,"[0m initializing...",$00
     jsr console_write_newline
 
-  @init_via:
+    ; initialize the VIAs
     jsr via_init
 
-  @init_led:
+    ; initialize the LED
     jsr led_init
     jsr led_flash
 
-  @init_lcd:
+    ; initialize the LCD
     jsr primm_console
     .asciiz "Initializing LCD..."
     jsr lcd_init
     loadptr lcd_message, lcd_out_ptr
     jsr lcd_print_string
-  @init_lcd_success:
-    loadptr init_complete, console_out_ptr
-    jsr console_write_string
-    jsr console_write_newline
- 
-
-  ;lda #spi_device_deselect
-  ;sta SPI_PORT
-
-  @init_rtc:
-    jsr primm_console
-    .asciiz "Initializing RTC..."
-    jsr rtc_init
-  @init_rtc_success:
-    loadptr init_complete, console_out_ptr
+    loadptr init_success, console_out_ptr
     jsr console_write_string
     jsr console_write_newline
 
+    ; initialize the RTC
+    @init_rtc:
+      jsr primm_console
+      .asciiz "Initializing RTC..."
+      jsr rtc_init
+    @init_rtc_success:
+      loadptr init_success, console_out_ptr
+      jsr console_write_string
+      jsr console_write_newline
 
-  @init_sdcard:
-    jsr primm_console
-    .asciiz "Initializing SD card..."
-    jsr sdcard_init
-    beq @init_sdcard_success
-  @init_sdcard_failure:
-    loadptr init_failed, console_out_ptr
-    jsr console_write_string
-    jsr console_write_hex
-    bra @init_sdcard_done
-  @init_sdcard_success:
-    loadptr init_complete, console_out_ptr
-    jsr console_write_string
-  @init_sdcard_done:
-    jsr console_write_newline
+    ; initialize the SD Card
+    @init_sdcard:
+      jsr primm_console
+      .asciiz "Initializing SD card..."
+      jsr sdcard_init
+      beq @init_sdcard_success
+    @init_sdcard_failure:
+      loadptr init_failed, console_out_ptr
+      jsr console_write_string
+      jsr console_write_hex
+      bra @init_sdcard_done
+    @init_sdcard_success:
+      loadptr init_success, console_out_ptr
+      jsr console_write_string
+    @init_sdcard_done:
+      jsr console_write_newline
 
-  ; @init_fat32:
-  ;   jsr primm_console
-  ;   .asciiz "Initializing FAT32 filesystem..."
-  ;   jsr fat32_init
-  ;   bcc @init_fat32_success
-  ; @init_fat32_failure:
-  ;   loadptr init_failed, console_out_ptr
-  ;   jsr console_write_string
-  ;   lda fat32_errorstage
-  ;   jsr console_write_hex
-  ;   bra @init_fat32_done
-  ; @init_fat32_success:
-  ;   loadptr init_complete, console_out_ptr
-  ;   jsr console_write_string
-  ; @init_fat32_done:
-  ;   jsr console_write_newline
 
+    ; setup timers on VIA1 for interupt processing
+    ; http://wilsonminesco.com/6502interrupts/index.html
+    lda #$FF        ; put FFFF (65535) in VIA timer 1 counter
+    sta VIA1_T1CL   ; this will make the timeout 61 times per
+    sta VIA1_T1CH   ; second with the 4mhz clock
+
+    lda VIA1_ACR    ; Clear the ACR's bit that
+    and #%01111111  ; tells T1 to toggle PB7 upon time-out, and
+    ora #%01000000  ; set the bit that tells T1 to automatically
+    sta VIA1_ACR    ; produce an interrupt at every time-out and
+                    ; just reload from the latches and keep going.
+    lda #%11000000
+    sta VIA1_IER    ; Enable the T1 interrupt in the VIA.
+
+    ; initialization complete
     jsr primm_console
     .asciiz "Initialization complete"
     jsr console_write_newline
     jsr console_write_newline
 
-  rts
+    rts
 
 
 
@@ -301,6 +357,7 @@ initialize:
     cmd_debugger: .asciiz "debug"
     cmd_kbtest:.asciiz "kbtest"
     unknown_command: .asciiz "Unknown command"
-    init_complete: .byte $1B,"[92mdone",$1B,"[0m",$00
+    init_success: .byte $1B,"[92mdone",$1B,"[0m",$00
     init_failed:  .byte $1B,"[91m failed - ",$1B,"[0m",$00
+
 

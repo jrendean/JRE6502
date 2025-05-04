@@ -36,16 +36,16 @@
       cmp #'x'
       beq @exit
 
-      cmp #'t'
+      cmp #'c'
       beq @memclear
 
       loadptr unknown, console_out_ptr
       jsr console_write_string
       jmp debugger_run
 
-@memclear:
-jsr mem_clear
-jmp debugger_run
+    @memclear:
+      jsr mem_clear
+      jmp debugger_run
 
     @dumpmem:
       jsr dump_memory
