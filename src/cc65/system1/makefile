@@ -1,6 +1,3 @@
-RM_BINARY=rm
-RM_FLAGS=-rf
-
 BUILD_FOLDER=build
 ROM_FOLDER=$(BUILD_FOLDER)/rom
 
@@ -16,4 +13,8 @@ $(ROM_FOLDER)/%.$(ADDRESS_MODE).bin:
 all: $(FIRMWARE_BINARIES)
 
 clean:
-	$(RM_BINARY) $(RM_FLAGS) $(BUILD_FOLDER)
+ifeq ($(OS),Windows_NT)
+	@if exist "$(subst /,\,$(BUILD_FOLDER))" rmdir /S /Q "$(subst /,\,$(BUILD_FOLDER))"
+else
+	rm -rf "$(BUILD_FOLDER)"
+endif

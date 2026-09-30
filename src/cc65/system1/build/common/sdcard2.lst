@@ -1,0 +1,763 @@
+ca65 V2.19 - Git cc3c40c
+Main file   : ../common/source/sdcard2.s
+Current file: ../common/source/sdcard2.s
+
+000000r 1               
+000000r 1               .include "io.inc"
+000000r 2               
+000000r 2               .ifndef IO_INC
+000000r 2               IO_INC = 1
+000000r 2               
+000000r 2               ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/io.inc65
+000000r 2               ;https://github.com/peternoyes/dodo/tree/master/src
+000000r 2               
+000000r 2               .import __VIA1_START__
+000000r 2               .import __VIA2_START__
+000000r 2               .import __ACIA1_START__
+000000r 2               
+000000r 2               VIA1_PORTB = __VIA1_START__ + 0
+000000r 2               VIA1_PORTA = __VIA1_START__ + 1
+000000r 2               VIA1_DDRB  = __VIA1_START__ + 2
+000000r 2               VIA1_DDRA  = __VIA1_START__ + 3
+000000r 2               VIA1_T1CL  = __VIA1_START__ + 4
+000000r 2               VIA1_T1CH  = __VIA1_START__ + 5
+000000r 2               VIA1_T1LL  = __VIA1_START__ + 6
+000000r 2               VIA1_T1LH  = __VIA1_START__ + 7
+000000r 2               VIA1_T2CL  = __VIA1_START__ + 8
+000000r 2               VIA1_T2CH  = __VIA1_START__ + 9
+000000r 2               VIA1_SR    = __VIA1_START__ + 10
+000000r 2               VIA1_ACR   = __VIA1_START__ + 11
+000000r 2               VIA1_PCR   = __VIA1_START__ + 12
+000000r 2               VIA1_IFR   = __VIA1_START__ + 13
+000000r 2               VIA1_IER   = __VIA1_START__ + 14
+000000r 2               VIA1_PANH  = __VIA1_START__ + 15
+000000r 2               
+000000r 2               VIA2_PORTB = __VIA2_START__ + 0
+000000r 2               VIA2_PORTA = __VIA2_START__ + 1
+000000r 2               VIA2_DDRB  = __VIA2_START__ + 2
+000000r 2               VIA2_DDRA  = __VIA2_START__ + 3
+000000r 2               VIA2_T1CL  = __VIA2_START__ + 4
+000000r 2               VIA2_T1CH  = __VIA2_START__ + 5
+000000r 2               VIA2_T1LL  = __VIA2_START__ + 6
+000000r 2               VIA2_T1LH  = __VIA2_START__ + 7
+000000r 2               VIA2_T2CL  = __VIA2_START__ + 8
+000000r 2               VIA2_T2CH  = __VIA2_START__ + 9
+000000r 2               VIA2_SR    = __VIA2_START__ + 10
+000000r 2               VIA2_ACR   = __VIA2_START__ + 11
+000000r 2               VIA2_PCR   = __VIA2_START__ + 12
+000000r 2               VIA2_IFR   = __VIA2_START__ + 13
+000000r 2               VIA2_IER   = __VIA2_START__ + 14
+000000r 2               VIA2_PANH  = __VIA2_START__ + 15
+000000r 2               
+000000r 2               ; Port bits
+000000r 2               VIA_P0 = 1 << 0
+000000r 2               VIA_P1 = 1 << 1
+000000r 2               VIA_P2 = 1 << 2
+000000r 2               VIA_P3 = 1 << 3
+000000r 2               VIA_P4 = 1 << 4
+000000r 2               VIA_P5 = 1 << 5
+000000r 2               VIA_P6 = 1 << 6
+000000r 2               VIA_P7 = 1 << 7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; LED Ports and Pins
+000000r 2               ;
+000000r 2               LED_PORT  = VIA2_PORTA
+000000r 2               PIN_LED = VIA_P0
+000000r 2               
+000000r 2               ;
+000000r 2               ; LCD Port and Pins
+000000r 2               ;
+000000r 2               .if lcd_type=20
+000000r 2                 ; built in 20x4
+000000r 2                 LCD_DDR  = VIA2_DDRA
+000000r 2                 LCD_PORT = VIA2_PORTA
+000000r 2               .elseif lcd_type=40
+000000r 2                 ; test 40x4
+000000r 2                 LCD_DDR  = VIA1_DDRA
+000000r 2                 LCD_PORT = VIA1_PORTA
+000000r 2               .endif
+000000r 2               
+000000r 2               LCD_E2 = VIA_P0
+000000r 2               LCD_RS = VIA_P1
+000000r 2               LCD_RW = VIA_P2
+000000r 2               LCD_E1 = VIA_P3
+000000r 2               LCD_D4 = VIA_P4
+000000r 2               LCD_D5 = VIA_P5
+000000r 2               LCD_D6 = VIA_P6
+000000r 2               LCD_D7 = VIA_P7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; PS/2 Ports and Pins
+000000r 2               ;
+000000r 2               PS2_PORT = VIA2_PORTA
+000000r 2               PS2_DDR  = VIA2_DDRA
+000000r 2               
+000000r 2               PS2_CLK  = VIA_P6
+000000r 2               PS2_DATA = VIA_P7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; SPI Ports and Pins
+000000r 2               ;
+000000r 2               SPI_PORT = VIA2_PORTB
+000000r 2               SPI_DDR  = VIA2_DDRB
+000000r 2               SPI_SR   = VIA2_SR
+000000r 2               SPI_ACR  = VIA2_ACR
+000000r 2               
+000000r 2               spi_device_sdcard	  = %00011100 ;spi device number 1110??? (SPI_SS1)
+000000r 2               spi_device_ra8875   = %00011010 ;spi device number 1101??? (SPI_SS2)
+000000r 2               spi_device_rtc	  	= %00010110 ;spi device number 1011??? (SPI_SS3)
+000000r 2               spi_device_deselect = %00011110 ; deselect any device
+000000r 2               SDCARD_DETECT			= VIA_P6
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; SNES Ports and Pins
+000000r 2               ;
+000000r 2               SNES_PORT = VIA2_PORTA
+000000r 2               SNES_DDR  = VIA2_DDRA
+000000r 2               
+000000r 2               SNES_CLK   = VIA_P1
+000000r 2               SNES_LATCH = VIA_P2
+000000r 2               SNES_DATA1 = VIA_P3
+000000r 2               SNES_DATA2 = VIA_P4
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               ACIA1_DATA    = __ACIA1_START__ + $00
+000000r 2               ACIA1_STATUS  = __ACIA1_START__ + $01
+000000r 2               ACIA1_COMMAND = __ACIA1_START__ + $02
+000000r 2               ACIA1_CONTROL = __ACIA1_START__ + $03
+000000r 2               
+000000r 2               ; ACIA control register bit values
+000000r 2               ACIA_STOP_BITS_1 = %00000000
+000000r 2               ACIA_STOP_BITS_2 = %10000000
+000000r 2               ACIA_DATA_BITS_8 = %00000000
+000000r 2               ACIA_DATA_BITS_7 = %00100000
+000000r 2               ACIA_DATA_BITS_6 = %01000000
+000000r 2               ACIA_DATA_BITS_5 = %01100000
+000000r 2               ACIA_CLOCK_EXT   = %00000000
+000000r 2               ACIA_CLOCK_INT   = %00010000
+000000r 2               ACIA_BAUD_16XEXT = %00000000
+000000r 2               ACIA_BAUD_50     = %00000001
+000000r 2               ACIA_BAUD_75     = %00000010
+000000r 2               ACIA_BAUD_109    = %00000011
+000000r 2               ACIA_BAUD_134    = %00000100
+000000r 2               ACIA_BAUD_150    = %00000101
+000000r 2               ACIA_BAUD_300    = %00000110
+000000r 2               ACIA_BAUD_600    = %00000111
+000000r 2               ACIA_BAUD_1200   = %00001000
+000000r 2               ACIA_BAUD_1800   = %00001001
+000000r 2               ACIA_BAUD_2400   = %00001010
+000000r 2               ACIA_BAUD_3600   = %00001011
+000000r 2               ACIA_BAUD_4800   = %00001100
+000000r 2               ACIA_BAUD_7200   = %00001101
+000000r 2               ACIA_BAUD_9600   = %00001110
+000000r 2               ACIA_BAUD_19200  = %00001111
+000000r 2               
+000000r 2               ; ACIA command register bit values
+000000r 2               ACIA_PARITY_ODD              = %00000000
+000000r 2               ACIA_PARITY_EVEN             = %01000000
+000000r 2               ACIA_PARITY_MARK             = %10000000
+000000r 2               ACIA_PARITY_SPACE            = %11000000
+000000r 2               ACIA_PARITY_DISABLE          = %00000000
+000000r 2               ACIA_PARITY_ENABLE           = %00100000
+000000r 2               ACIA_ECHO_DISABLE            = %00000000
+000000r 2               ACIA_ECHO_ENABLE             = %00010000
+000000r 2               ACIA_TX_INT_DISABLE_RTS_HIGH = %00000000
+000000r 2               ACIA_TX_INT_ENABLE_RTS_LOW   = %00000100
+000000r 2               ACIA_TX_INT_DISABLE_RTS_LOW  = %00001000
+000000r 2               ACIA_TX_INT_DISABLE_BREAK    = %00001100
+000000r 2               ACIA_RX_INT_ENABLE           = %00000000
+000000r 2               ACIA_RX_INT_DISABLE          = %00000010
+000000r 2               ACIA_DTR_HIGH                = %00000000
+000000r 2               ACIA_DTR_LOW                 = %00000001
+000000r 2               
+000000r 2               ; ACIA status register bit masks
+000000r 2               ACIA_STATUS_IRQ        = 1 << 7
+000000r 2               ACIA_STATUS_DSR        = 1 << 6
+000000r 2               ACIA_STATUS_DCD        = 1 << 5
+000000r 2               ACIA_STATUS_TX_EMPTY   = 1 << 4
+000000r 2               ACIA_STATUS_RX_FULL    = 1 << 3
+000000r 2               ACIA_STATUS_OVERRUN    = 1 << 2
+000000r 2               ACIA_STATUS_FRAME_ERR  = 1 << 1
+000000r 2               ACIA_STATUS_PARITY_ERR = 1 << 0
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               .include "zeropage.inc"
+000000r 2               
+000000r 2               .ifndef ZEROPAGE_INC
+000000r 2               ZEROPAGE_INC = 1
+000000r 2               
+000000r 2               
+000000r 2               .globalzp sp
+000000r 2               .globalzp sreg
+000000r 2               .globalzp regsave
+000000r 2               
+000000r 2               .globalzp tmp1
+000000r 2               .globalzp tmp2
+000000r 2               .globalzp tmp3
+000000r 2               .globalzp tmp4
+000000r 2               .globalzp tmp5
+000000r 2               .globalzp ptr1
+000000r 2               .globalzp ptr2
+000000r 2               .globalzp ptr3
+000000r 2               .globalzp ptr4
+000000r 2               
+000000r 2               .globalzp console_out_ptr
+000000r 2               .globalzp lcd_out_ptr
+000000r 2               .globalzp ra8875_out_ptr
+000000r 2               
+000000r 2               .globalzp zp_sd_address
+000000r 2               .globalzp zp_sd_currentsector
+000000r 2               .globalzp fat32_fatstart
+000000r 2               .globalzp fat32_datastart
+000000r 2               .globalzp fat32_rootcluster
+000000r 2               .globalzp fat32_sectorspercluster
+000000r 2               .globalzp fat32_pendingsectors
+000000r 2               .globalzp fat32_address
+000000r 2               .globalzp fat32_nextcluster
+000000r 2               .globalzp fat32_bytesremaining
+000000r 2               .globalzp fat32_errorstage
+000000r 2               .globalzp fat32_filenamepointer
+000000r 2               
+000000r 2               
+000000r 2               .globalzp DPL
+000000r 2               .globalzp DPH
+000000r 2               
+000000r 2               .globalzp lcd_enable_pins
+000000r 2               .globalzp lcd_row
+000000r 2               .globalzp lcd_column
+000000r 2               
+000000r 2               .globalzp controller1
+000000r 2               .globalzp controller2
+000000r 2               
+000000r 2               .globalzp spi_sr
+000000r 2               .globalzp read_blkptr, write_blkptr
+000000r 2               .globalzp sd_tmp
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               lba_addr 		= $0280		; 4 bytes
+000000r 2               blocks			= $0284		; 3 bytes blocks to read, 3 bytes sufficient to address 4GB -> 4294967296 >> 9 = 8388608 ($800000) max blocks/file
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; last known timestamp with date set to 1970-01-01
+000000r 2               rtc_systime_t = $0300
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; time struct with date set to 1970-01-01
+000000r 2               .struct time_t
+000000r 2               		  tm_sec	.byte		;0-59
+000000r 2               		  tm_min	.byte		;0-59
+000000r 2               		  tm_hour	.byte		;0-23
+000000r 2               		  tm_wday	.byte		;
+000000r 2               		  tm_mday	.byte		;1-31
+000000r 2               		  tm_mon	.byte	;1	;0-11 0-jan, 11-dec
+000000r 2               		  tm_year	.byte  ;70	;years since 1900
+000000r 2               .endstruct
+000000r 2               
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               
+000000r 1               .import spi_rw_byte, spi_r_byte, spi_select_device, spi_deselect
+000000r 1               
+000000r 1               .export sdcard_init, sdcard_detect
+000000r 1               .export sd_select_card, sd_deselect_card
+000000r 1               .export sd_read_block, sd_cmd, sd_cmd_lba
+000000r 1               .export fullblock
+000000r 1               .export sd_busy_wait
+000000r 1               
+000000r 1               .export sd_write_block
+000000r 1               
+000000r 1               
+000000r 1               
+000000r 1               
+000000r 1               
+000000r 1               ;----------------------------------------------------------------------------------------------
+000000r 1               ; SD Card commands
+000000r 1               ;----------------------------------------------------------------------------------------------
+000000r 1               cmd0     = $40       ; GO_IDLE_STATE
+000000r 1               cmd1     = $40 + 1     ; SEND_OP_COND
+000000r 1               cmd8     = $40 + 8   ; SEND_IF_COND
+000000r 1               cmd12    = $40 + 12  ; STOP_TRANSMISSION
+000000r 1               cmd16    = $40 + 16     ; SET_BLOCKLEN
+000000r 1               cmd17    = $40 + 17    ; READ_SINGLE_BLOCK
+000000r 1               cmd18    = $40 + 18    ; READ_MULTIPLE_BLOCK
+000000r 1               cmd24    = $40 + 24    ; WRITE_BLOCK
+000000r 1               cmd25    = $40 + 25    ; WRITE_MULTIPLE_BLOCK
+000000r 1               cmd55    = $40 + 55    ; APP_CMD
+000000r 1               cmd58    = $40 + 58    ; READ_OCR
+000000r 1               acmd41    = $40 + 41    ; APP_SEND_OP_COND
+000000r 1               acmd23    = $40 + 23    ; SET_WR_BLOCK_ERASE_COUNT - Define number of blocks to pre-erase with next multi-block write command.
+000000r 1               
+000000r 1               sd_data_token = $fe
+000000r 1               ; SD CArd command parameter/result buffer
+000000r 1               sd_cmd_param         = $02a0
+000000r 1               sd_cmd_chksum        = sd_cmd_param+4
+000000r 1               
+000000r 1               sd_cmd_response_retries = $08
+000000r 1               sd_data_token_retries = $0f ; increase, card specific and must be larger for "huge" cards
+000000r 1               
+000000r 1               ; sd card R1 response status bits
+000000r 1               sd_card_status_idle             = %00000001
+000000r 1               sd_card_status_erase_reset      = %00000010
+000000r 1               sd_card_status_illegal_command  = %00000100
+000000r 1               sd_card_status_crc_error        = %00001000
+000000r 1               sd_card_status_erase_seq_error  = %00010000
+000000r 1               sd_card_status_address_error    = %00100000
+000000r 1               sd_card_status_parameter_error  = %01000000
+000000r 1               
+000000r 1               sd_card_error_timeout_busy = $c0
+000000r 1               sd_card_error_timeout = $c1
+000000r 1               
+000000r 1               
+000000r 1               
+000000r 1               .code
+000000r 1               
+000000r 1                 ;    out:
+000000r 1                 ;      Z=1 sd card available, Z=0 otherwise A=ENODEV
+000000r 1                 sdcard_detect:
+000000r 1  AD rr rr         lda SPI_PORT
+000003r 1  29 40            and #SDCARD_DETECT
+000005r 1  60               rts
+000006r 1               
+000006r 1                 ;---------------------------------------------------------------------
+000006r 1                 ; Init SD Card
+000006r 1                 ; Destructive: A, X, Y
+000006r 1                 ;
+000006r 1                 ;    out:  Z=1 on success, Z=0 otherwise
+000006r 1                 ;
+000006r 1                 ;---------------------------------------------------------------------
+000006r 1                 sdcard_init:
+000006r 1  A9 1C              lda #spi_device_sdcard
+000008r 1  20 rr rr           jsr spi_select_device
+00000Br 1  F0 01              beq @init
+00000Dr 1  60                 rts
+00000Er 1                   @init:
+00000Er 1                       ; 74 SPI clock cycles - !!!Note: spi clock cycle should be in range 100-400Khz!!!
+00000Er 1  A2 4A                    ldx #74
+000010r 1               
+000010r 1                           ; set ALL CS lines and DO to HIGH
+000010r 1  A9 FE                    lda #%11111110
+000012r 1  8D rr rr                 sta SPI_PORT
+000015r 1               
+000015r 1  A8                       tay
+000016r 1  C8                       iny
+000017r 1               
+000017r 1               @l1:
+000017r 1  8C rr rr                 sty SPI_PORT
+00001Ar 1  8D rr rr                 sta SPI_PORT
+00001Dr 1  CA                       dex
+00001Er 1  D0 F7                    bne @l1
+000020r 1               
+000020r 1  20 rr rr                 jsr sd_select_card
+000023r 1  F0 03                    beq @next
+000025r 1  4C rr rr                 jmp @exit
+000028r 1               @next:
+000028r 1               
+000028r 1  20 rr rr                 jsr sd_param_init
+00002Br 1               
+00002Br 1                           ; CMD0 needs CRC7 checksum to be correct
+00002Br 1  A9 95                    lda #$95
+00002Dr 1  8D A4 02                 sta sd_cmd_chksum
+000030r 1               
+000030r 1  A0 08                    ldy #sd_cmd_response_retries
+000032r 1               @lcmd:
+000032r 1  88                       dey
+000033r 1  D0 03                    bne @l2
+000035r 1                           ;debug "sd_i_cmd0_max_retries"
+000035r 1  4C rr rr                 jmp @exit
+000038r 1               @l2:
+000038r 1                           ; send CMD0 - init SD card to SPI mode
+000038r 1  A9 40                    lda #cmd0
+00003Ar 1  5A                       phy
+00003Br 1  20 rr rr                 jsr sd_cmd
+00003Er 1  7A                       ply
+00003Fr 1                           ; debug "CMD0"
+00003Fr 1  C9 01                    cmp #$01
+000041r 1  D0 EF                    bne @lcmd
+000043r 1               
+000043r 1  A9 01                    lda #$01
+000045r 1  8D A2 02                 sta sd_cmd_param+2
+000048r 1  A9 AA                    lda #$aa
+00004Ar 1  8D A3 02                 sta sd_cmd_param+3
+00004Dr 1  A9 87                    lda #$87
+00004Fr 1  8D A4 02                 sta sd_cmd_chksum
+000052r 1               
+000052r 1               
+000052r 1  A9 48                    lda #cmd8
+000054r 1  20 rr rr                 jsr sd_cmd
+000057r 1                           ;debug32 "CMD8", sd_cmd_param
+000057r 1               
+000057r 1  20 rr rr                 jsr sd_param_init
+00005Ar 1               
+00005Ar 1  C9 01                    cmp #$01
+00005Cr 1  D0 1C                    bne @l5
+00005Er 1                           ; Invalid Card (or card we can't handle yet)
+00005Er 1                           ; card must respond with $000001aa, otherwise we can't use it
+00005Er 1                           ;
+00005Er 1                           ; screw this
+00005Er 1  20 rr rr                 jsr spi_r_byte
+000061r 1                           ; and that
+000061r 1  20 rr rr                 jsr spi_r_byte
+000064r 1               
+000064r 1                           ; is this $01? we're done if not
+000064r 1  20 rr rr                 jsr spi_r_byte
+000067r 1  C9 01                    cmp #$01
+000069r 1  F0 03                    beq @l3
+00006Br 1  4C rr rr                 jmp @exit
+00006Er 1               @l3:
+00006Er 1               
+00006Er 1               ;            bne @exit
+00006Er 1               
+00006Er 1                           ; is this $aa? we're done if not
+00006Er 1  20 rr rr                 jsr spi_r_byte
+000071r 1  C9 AA                    cmp #$aa
+000073r 1  D0 48                    bne @exit
+000075r 1               
+000075r 1                           ; init card using ACMD41 and parameter $40000000
+000075r 1  A9 40                    lda #$40
+000077r 1  8D A0 02                 sta sd_cmd_param
+00007Ar 1               
+00007Ar 1               @l5:
+00007Ar 1  A9 77                    lda #cmd55
+00007Cr 1  20 rr rr                 jsr sd_cmd
+00007Fr 1               
+00007Fr 1  C9 01                    cmp #$01
+000081r 1  D0 3A                    bne @exit
+000083r 1                           ; Init failed
+000083r 1               
+000083r 1               
+000083r 1  A9 69                    lda #acmd41
+000085r 1  20 rr rr                 jsr sd_cmd
+000088r 1                           ;debug32 "ACMD41", sd_cmd_param
+000088r 1               
+000088r 1  C9 00                    cmp #$00
+00008Ar 1  F0 0E                    beq @l7
+00008Cr 1               
+00008Cr 1  C9 01                    cmp #$01
+00008Er 1  F0 EA                    beq @l5
+000090r 1               
+000090r 1  CD A0 02                 cmp sd_cmd_param
+000093r 1  F0 28                    beq @exit        ; acmd41 with $40000000 and $00000000 failed, TODO: try CMD1
+000095r 1               
+000095r 1  20 rr rr                 jsr sd_param_init
+000098r 1  80 E0                    bra @l5
+00009Ar 1               
+00009Ar 1               @l7:
+00009Ar 1  CD A0 02                 cmp sd_cmd_param
+00009Dr 1  F0 0F                    beq @cmd16        ; acmd41 with $40000000 and $00000000 failed, TODO: try CMD1
+00009Fr 1               
+00009Fr 1  9C A0 02                 stz sd_cmd_param
+0000A2r 1               
+0000A2r 1  A9 7A                    lda #cmd58
+0000A4r 1  20 rr rr                 jsr sd_cmd
+0000A7r 1                           ;debug "CMD58"
+0000A7r 1                           ; read result. we need to check bit 30 of a 32bit result
+0000A7r 1  20 rr rr                 jsr spi_r_byte
+0000AAr 1                           ;debug "CMD58_r"
+0000AAr 1                       ;    sta krn_tmp
+0000AAr 1                           ;pha
+0000AAr 1                           ; read the other 3 bytes and trash them
+0000AAr 1                       ;    jsr spi_r_byte
+0000AAr 1                       ;    jsr spi_r_byte
+0000AAr 1                       ;    jsr spi_r_byte
+0000AAr 1                           ; or don't read them at all. the next busy_wait will take care of everything
+0000AAr 1               
+0000AAr 1                           ;pla
+0000AAr 1  29 40                    and #%01000000
+0000ACr 1  D0 0D                    bne @l9
+0000AEr 1               @cmd16:
+0000AEr 1  20 rr rr                 jsr sd_param_init
+0000B1r 1               
+0000B1r 1                           ; Set block size to 512 bytes
+0000B1r 1  A9 02                    lda #$02
+0000B3r 1  8D A2 02                 sta sd_cmd_param+2
+0000B6r 1               
+0000B6r 1                           ;debug32 "cmd16p", sd_cmd_param
+0000B6r 1               
+0000B6r 1  A9 50                    lda #cmd16
+0000B8r 1  20 rr rr                 jsr sd_cmd
+0000BBr 1                           ;debug "CMD16"
+0000BBr 1               @exit_ok:
+0000BBr 1               @l9:
+0000BBr 1                   ; SD card init successful
+0000BBr 1  A9 00                    lda #$00
+0000BDr 1               @exit:
+0000BDr 1  4C rr rr                 jmp sd_deselect_card
+0000C0r 1               
+0000C0r 1               ;---------------------------------------------------------------------
+0000C0r 1               ; Send SD Card Command
+0000C0r 1               ; in:
+0000C0r 1               ;     A - cmd byte
+0000C0r 1               ;     sd_cmd_param - parameters
+0000C0r 1               ; out:
+0000C0r 1               ;    A - SD Card R1 status byte in
+0000C0r 1               ;---------------------------------------------------------------------
+0000C0r 1               sd_cmd:
+0000C0r 1  48                       pha
+0000C1r 1  20 rr rr                 jsr sd_busy_wait
+0000C4r 1  68                       pla
+0000C5r 1                           ; transfer command byte
+0000C5r 1  20 rr rr                 jsr spi_rw_byte
+0000C8r 1               
+0000C8r 1                           ; transfer parameter buffer
+0000C8r 1  A2 00                    ldx #$00
+0000CAr 1  BD A0 02     @l1:         lda sd_cmd_param,x
+0000CDr 1  DA                       phx
+0000CEr 1  20 rr rr                 jsr spi_rw_byte
+0000D1r 1  FA                       plx
+0000D2r 1  E8                       inx
+0000D3r 1  E0 05                    cpx #$05
+0000D5r 1  D0 F3                    bne @l1
+0000D7r 1               
+0000D7r 1               ;---------------------------------------------------------------------
+0000D7r 1               ; wait for card response for command
+0000D7r 1               ; read max. 8 bytes (The response is sent back within command response time (NCR), 0 to 8 bytes for SDC, 1 to 8 bytes for MMC. )
+0000D7r 1               ; http://elm-chan.org/docs/mmc/mmc_e.html
+0000D7r 1               ; out:
+0000D7r 1               ; A - response of card, for error codes see sdcard.inc. $1F if no valid response within NCR
+0000D7r 1               ; Z=1 - no error
+0000D7r 1               ;---------------------------------------------------------------------
+0000D7r 1               sd_cmd_response_wait:
+0000D7r 1  A0 08                    ldy #sd_cmd_response_retries
+0000D9r 1  88           @l:        dey
+0000DAr 1  F0 06                    beq sd_block_cmd_timeout ; y already 0? then invalid response or timeout
+0000DCr 1  20 rr rr                 jsr spi_r_byte
+0000DFr 1                           ;debug "sd_cm_wt"
+0000DFr 1  30 F8                    bmi @l
+0000E1r 1                           ;debug "sd_cm_wt_e"
+0000E1r 1  60                       rts
+0000E2r 1               sd_block_cmd_timeout:
+0000E2r 1                           ;debug "sd_cm_wtt"
+0000E2r 1  A9 1F                    lda #$1f ; make up error code distinct from possible sd card responses to mark timeout
+0000E4r 1  60                       rts
+0000E5r 1               
+0000E5r 1               
+0000E5r 1               ;---------------------------------------------------------------------
+0000E5r 1               ; Read block from SD Card
+0000E5r 1               ;in:
+0000E5r 1               ;    A - sd card cmd byte (cmd17, cmd18, cmd24, cmd25)
+0000E5r 1               ;    block lba in lba_addr
+0000E5r 1               ;
+0000E5r 1               ;out:
+0000E5r 1               ;    A - A = 0 on success, error code otherwise
+0000E5r 1               ;---------------------------------------------------------------------
+0000E5r 1               sd_read_block:
+0000E5r 1  20 rr rr                 jsr sd_select_card
+0000E8r 1               
+0000E8r 1  20 rr rr                 jsr sd_cmd_lba
+0000EBr 1  A9 51                    lda #cmd17
+0000EDr 1  20 rr rr                 jsr sd_cmd
+0000F0r 1  D0 03                    bne @exit
+0000F2r 1  20 rr rr                 jsr fullblock
+0000F5r 1               
+0000F5r 1               @exit:     ; fall through to sd_deselect_card
+0000F5r 1               
+0000F5r 1               ;---------------------------------------------------------------------
+0000F5r 1               ; deselect sd card, puSH CS line to HI and generate few clock cycles
+0000F5r 1               ; to allow card to deinit
+0000F5r 1               ;---------------------------------------------------------------------
+0000F5r 1               sd_deselect_card:
+0000F5r 1  48                   pha
+0000F6r 1  5A                   phy
+0000F7r 1               
+0000F7r 1  20 rr rr             jsr spi_deselect
+0000FAr 1               
+0000FAr 1  A0 04                ldy #$04
+0000FCr 1               @l1:
+0000FCr 1  20 rr rr             jsr spi_r_byte
+0000FFr 1  88                   dey
+000100r 1  D0 FA                bne @l1
+000102r 1               
+000102r 1  7A                   ply
+000103r 1  68                   pla
+000104r 1               
+000104r 1  60                   rts
+000105r 1               
+000105r 1               fullblock:
+000105r 1                           ; wait for sd card data token
+000105r 1  A9 FE                    lda #sd_data_token
+000107r 1  20 rr rr                 jsr sd_wait
+00010Ar 1  D0 12                    bne @exit
+00010Cr 1               
+00010Cr 1  A0 00                    ldy #$00
+00010Er 1  20 rr rr                 jsr halfblock
+000111r 1               
+000111r 1  E6 rr                    inc read_blkptr+1
+000113r 1  20 rr rr                 jsr halfblock
+000116r 1               
+000116r 1  20 rr rr                 jsr spi_r_byte        ; Read 2 CRC bytes
+000119r 1  20 rr rr                 jsr spi_r_byte
+00011Cr 1  A9 00                    lda #$00
+00011Er 1               @exit:
+00011Er 1  60                       rts
+00011Fr 1               
+00011Fr 1               halfblock:
+00011Fr 1               @l:
+00011Fr 1  20 rr rr                 jsr spi_r_byte
+000122r 1  91 rr                    sta (read_blkptr),y
+000124r 1  C8                       iny
+000125r 1  D0 F8                    bne @l
+000127r 1  60                       rts
+000128r 1               
+000128r 1               ;---------------------------------------------------------------------
+000128r 1               ; wait for sd card whatever
+000128r 1               ; in: A - value to wait for
+000128r 1               ; out: Z = 1, A = 1 when error (timeout)
+000128r 1               ;---------------------------------------------------------------------
+000128r 1               sd_wait:
+000128r 1  85 rr                    sta sd_tmp
+00012Ar 1  A0 0F                    ldy #sd_data_token_retries
+00012Cr 1  A2 00                    ldx #0
+00012Er 1               @l1:
+00012Er 1  DA                       phx
+00012Fr 1  20 rr rr                 jsr spi_r_byte
+000132r 1  FA                       plx
+000133r 1  C5 rr                    cmp sd_tmp
+000135r 1  F0 09                    beq @l2
+000137r 1  CA                       dex
+000138r 1  D0 F4                    bne @l1
+00013Ar 1  88                       dey
+00013Br 1  D0 F1                    bne @l1
+00013Dr 1               
+00013Dr 1  A9 C1                    lda #sd_card_error_timeout
+00013Fr 1  60                       rts
+000140r 1  A9 00        @l2:        lda #0
+000142r 1  60                       rts
+000143r 1               
+000143r 1               
+000143r 1               ;---------------------------------------------------------------------
+000143r 1               ; select sd card, pull CS line to low
+000143r 1               ;---------------------------------------------------------------------
+000143r 1               sd_select_card:
+000143r 1  A9 1C                    lda #spi_device_sdcard
+000145r 1  8D rr rr                 sta SPI_PORT
+000148r 1                           ;TODO FIXME race condition here!
+000148r 1               
+000148r 1               ; fall through to sd_busy_wait
+000148r 1               
+000148r 1               ;---------------------------------------------------------------------
+000148r 1               ; wait while sd card is busy
+000148r 1               ; Z = 1, A = 1 when error (timeout)
+000148r 1               ;---------------------------------------------------------------------
+000148r 1               sd_busy_wait:
+000148r 1  A2 FF                    ldx #$ff
+00014Ar 1  A9 FF        @l1:         lda #$ff
+00014Cr 1  CA                       dex
+00014Dr 1  F0 0C                    beq @err
+00014Fr 1               
+00014Fr 1  DA                       phx
+000150r 1  20 rr rr                 jsr spi_rw_byte
+000153r 1  FA                       plx
+000154r 1  C9 FF                    cmp #$ff
+000156r 1  D0 F2                    bne @l1
+000158r 1               
+000158r 1  A9 00                    lda #$00
+00015Ar 1  60                       rts
+00015Br 1               @err:
+00015Br 1  A9 C0                    lda #sd_card_error_timeout_busy
+00015Dr 1  60                       rts
+00015Er 1               
+00015Er 1               ;---------------------------------------------------------------------
+00015Er 1               ; clear sd card parameter buffer
+00015Er 1               ;---------------------------------------------------------------------
+00015Er 1               sd_param_init:
+00015Er 1  A2 03                    ldx #$03
+000160r 1               @l:
+000160r 1  9E A0 02                 stz sd_cmd_param,x
+000163r 1  CA                       dex
+000164r 1  10 FA                    bpl @l
+000166r 1  A9 01                    lda #$01
+000168r 1  8D A4 02                 sta sd_cmd_chksum
+00016Br 1  60                       rts
+00016Cr 1               
+00016Cr 1               ;---------------------------------------------------------------------
+00016Cr 1               ; write lba_addr in correct order into sd_cmd_param
+00016Cr 1               ; in:
+00016Cr 1               ;    lba_addr - LBA address
+00016Cr 1               ; out:
+00016Cr 1               ;    sd_cmd_param
+00016Cr 1               ;---------------------------------------------------------------------
+00016Cr 1               sd_cmd_lba:
+00016Cr 1  A2 03                    ldx #$03
+00016Er 1  A0 00                    ldy #$00
+000170r 1               @l:
+000170r 1  BD 80 02                 lda lba_addr,x
+000173r 1  99 A0 02                 sta sd_cmd_param,y
+000176r 1  C8                       iny
+000177r 1  CA                       dex
+000178r 1  10 F6                    bpl @l
+00017Ar 1  60                       rts
+00017Br 1               
+00017Br 1               
+00017Br 1               
+00017Br 1               
+00017Br 1               
+00017Br 1               ;---------------------------------------------------------------------
+00017Br 1               ; Write block to SD Card
+00017Br 1               ;in:
+00017Br 1               ;    A - sd card cmd byte (cmd17, cmd18, cmd24, cmd25)
+00017Br 1               ;    block lba in lba_addr
+00017Br 1               ;
+00017Br 1               ;out:
+00017Br 1               ;    A - A = 0 on success, error code otherwise
+00017Br 1               ;---------------------------------------------------------------------
+00017Br 1               sd_write_block:
+00017Br 1  DA                       phx
+00017Cr 1  5A                       phy
+00017Dr 1  20 rr rr                 jsr sd_select_card
+000180r 1               
+000180r 1  20 rr rr                 jsr sd_cmd_lba
+000183r 1  A9 58                    lda #cmd24
+000185r 1  20 rr rr                 jsr sd_cmd
+000188r 1  D0 2D                    bne @exit
+00018Ar 1               
+00018Ar 1  A9 FE                    lda #sd_data_token
+00018Cr 1  20 rr rr                 jsr spi_rw_byte
+00018Fr 1               
+00018Fr 1  A0 00                    ldy #$00
+000191r 1  B1 rr        @l2:        lda (write_blkptr),y
+000193r 1  5A                       phy
+000194r 1  20 rr rr                 jsr spi_rw_byte
+000197r 1  7A                       ply
+000198r 1  C8                       iny
+000199r 1  D0 F6                    bne @l2
+00019Br 1               
+00019Br 1  E6 rr                    inc write_blkptr+1
+00019Dr 1               
+00019Dr 1  A0 00                    ldy #$00
+00019Fr 1  B1 rr        @l3:        lda (write_blkptr),y
+0001A1r 1  5A                       phy
+0001A2r 1  20 rr rr                 jsr spi_rw_byte
+0001A5r 1  7A                       ply
+0001A6r 1  C8                       iny
+0001A7r 1  D0 F6                    bne @l3
+0001A9r 1               
+0001A9r 1               
+0001A9r 1               
+0001A9r 1                           ; Send fake CRC bytes
+0001A9r 1  A9 00                    lda #$00
+0001ABr 1  20 rr rr                 jsr spi_rw_byte
+0001AEr 1  A9 00                    lda #$00
+0001B0r 1  20 rr rr                 jsr spi_rw_byte
+0001B3r 1  E6 rr                    inc write_blkptr+1
+0001B5r 1  A9 00                    lda #$00
+0001B7r 1               
+0001B7r 1               @exit:
+0001B7r 1  7A                       ply
+0001B8r 1  FA                       plx
+0001B9r 1  4C rr rr                 jmp sd_deselect_card
+0001BCr 1               
+0001BCr 1               

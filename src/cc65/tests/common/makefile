@@ -24,10 +24,22 @@ X6502_BINARY=x6502
 # Checksum generator
 MD5_BINARY=md5
 
-# Standard utilities (rm/mkdir)
-RM_BINARY=rm
-MKDIR_BINARY=mkdir
-MKDIR_FLAGS=-p
+# Standard utilities
+ifeq ($(OS),Windows_NT)
+define MKDIR_P
+	@if not exist "$(subst /,\,$(1))" mkdir "$(subst /,\,$(1))"
+endef
+define RM_F
+	-@del /Q "$(subst /,\,$(1))" 2>NUL
+endef
+else
+define MKDIR_P
+	@mkdir -p "$(1)"
+endef
+define RM_F
+	@rm -f "$(1)"
+endef
+endif
 
 # Build folder
 BUILD_ROOT=../build
@@ -61,23 +73,23 @@ FIRMWARE_BINARY=$(ROM_FOLDER)/$(PROJECT_NAME).$(ADDRESS_MODE).bin
 
 # Compile assembler sources
 $(BUILD_FOLDER)/%.o: %.s $(FIRMWARE_CFG)
-	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(BUILD_FOLDER)
+	$(call MKDIR_P,$(BUILD_FOLDER))
 	$(CA65_BINARY) $(CA65_FLAGS) -I $(COMMON_INCLUDE_FOLDER) -o $@ -l $(@:.o=.lst) $<
 
 # Compile C sources
 $(BUILD_FOLDER)/%.o: %.c $(FIRMWARE_CFG)
-	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(BUILD_FOLDER)
+	$(call MKDIR_P,$(BUILD_FOLDER))
 	$(CC65_BINARY) $(CC65_FLAGS) -I $(COMMON_INCLUDE_FOLDER) -o $(@:.o=.s) $<
 	$(CA65_BINARY) $(CA65_FLAGS) -o $@ -l $(@:.o=.lst) $(@:.o=.s)
 
 # Compile common assembler sources
 $(COMMON_BUILD_FOLDER)/%.o: $(COMMON_SOURCE_FOLDER)/%.s $(FIRMWARE_CFG)
-	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(COMMON_BUILD_FOLDER)
+	$(call MKDIR_P,$(COMMON_BUILD_FOLDER))
 	$(CA65_BINARY) $(CA65_FLAGS) -I $(COMMON_INCLUDE_FOLDER) -o $@ -l $(@:.o=.lst) $<
 
 # Compile common C sources
 $(COMMON_BUILD_FOLDER)/%.o: $(COMMON_SOURCE_FOLDER)/%.c $(FIRMWARE_CFG)
-	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(COMMON_BUILD_FOLDER)
+	$(call MKDIR_P,$(COMMON_BUILD_FOLDER))
 	$(CC65_BINARY) $(CC65_FLAGS) -I $(COMMON_INCLUDE_FOLDER) -o $(@:.o=.s) $<
 	$(CA65_BINARY) $(CA65_FLAGS) -o $@ -l $(@:.o=.lst) $(@:.o=.s)
 
@@ -86,7 +98,7 @@ all: $(FIRMWARE_BINARY)
 
 # Linking process
 $(FIRMWARE_BINARY): $(OBJECTS)
-	@$(MKDIR_BINARY) $(MKDIR_FLAGS) $(ROM_FOLDER)
+	$(call MKDIR_P,$(ROM_FOLDER))
 	$(CL65_BINARY) $(CL65_FLAGS) -C $(FIRMWARE_CFG) -m $(FIRMWARE_BINARY:.bin=.map) -o $@ $^
 
 # Display ROM contents
@@ -104,11 +116,11 @@ emu: $(FIRMWARE_BINARY)
 
 # Clean generated files
 clean:
-	$(RM_BINARY) -f $(ROM_FOLDER)/*.bin \
-	$(BUILD_FOLDER)/*.o \
-	$(BUILD_FOLDER)/*.lst \
-	$(BUILD_FOLDER)/*.s \
-	$(ROM_FOLDER)/*.map \
-	$(COMMON_BUILD_FOLDER)/*.o \
-	$(COMMON_BUILD_FOLDER)/*.lst \
-	$(COMMON_BUILD_FOLDER)/*.s \
+	$(call RM_F,$(ROM_FOLDER)/*.bin)
+	$(call RM_F,$(BUILD_FOLDER)/*.o)
+	$(call RM_F,$(BUILD_FOLDER)/*.lst)
+	$(call RM_F,$(BUILD_FOLDER)/*.s)
+	$(call RM_F,$(ROM_FOLDER)/*.map)
+	$(call RM_F,$(COMMON_BUILD_FOLDER)/*.o)
+	$(call RM_F,$(COMMON_BUILD_FOLDER)/*.lst)
+	$(call RM_F,$(COMMON_BUILD_FOLDER)/*.s)

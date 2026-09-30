@@ -1,0 +1,391 @@
+ca65 V2.19 - Git cc3c40c
+Main file   : ../common/source/spi.s
+Current file: ../common/source/spi.s
+
+000000r 1               
+000000r 1               .include "io.inc"
+000000r 2               
+000000r 2               .ifndef IO_INC
+000000r 2               IO_INC = 1
+000000r 2               
+000000r 2               ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/io.inc65
+000000r 2               ;https://github.com/peternoyes/dodo/tree/master/src
+000000r 2               
+000000r 2               .import __VIA1_START__
+000000r 2               .import __VIA2_START__
+000000r 2               .import __ACIA1_START__
+000000r 2               
+000000r 2               VIA1_PORTB = __VIA1_START__ + 0
+000000r 2               VIA1_PORTA = __VIA1_START__ + 1
+000000r 2               VIA1_DDRB  = __VIA1_START__ + 2
+000000r 2               VIA1_DDRA  = __VIA1_START__ + 3
+000000r 2               VIA1_T1CL  = __VIA1_START__ + 4
+000000r 2               VIA1_T1CH  = __VIA1_START__ + 5
+000000r 2               VIA1_T1LL  = __VIA1_START__ + 6
+000000r 2               VIA1_T1LH  = __VIA1_START__ + 7
+000000r 2               VIA1_T2CL  = __VIA1_START__ + 8
+000000r 2               VIA1_T2CH  = __VIA1_START__ + 9
+000000r 2               VIA1_SR    = __VIA1_START__ + 10
+000000r 2               VIA1_ACR   = __VIA1_START__ + 11
+000000r 2               VIA1_PCR   = __VIA1_START__ + 12
+000000r 2               VIA1_IFR   = __VIA1_START__ + 13
+000000r 2               VIA1_IER   = __VIA1_START__ + 14
+000000r 2               VIA1_PANH  = __VIA1_START__ + 15
+000000r 2               
+000000r 2               VIA2_PORTB = __VIA2_START__ + 0
+000000r 2               VIA2_PORTA = __VIA2_START__ + 1
+000000r 2               VIA2_DDRB  = __VIA2_START__ + 2
+000000r 2               VIA2_DDRA  = __VIA2_START__ + 3
+000000r 2               VIA2_T1CL  = __VIA2_START__ + 4
+000000r 2               VIA2_T1CH  = __VIA2_START__ + 5
+000000r 2               VIA2_T1LL  = __VIA2_START__ + 6
+000000r 2               VIA2_T1LH  = __VIA2_START__ + 7
+000000r 2               VIA2_T2CL  = __VIA2_START__ + 8
+000000r 2               VIA2_T2CH  = __VIA2_START__ + 9
+000000r 2               VIA2_SR    = __VIA2_START__ + 10
+000000r 2               VIA2_ACR   = __VIA2_START__ + 11
+000000r 2               VIA2_PCR   = __VIA2_START__ + 12
+000000r 2               VIA2_IFR   = __VIA2_START__ + 13
+000000r 2               VIA2_IER   = __VIA2_START__ + 14
+000000r 2               VIA2_PANH  = __VIA2_START__ + 15
+000000r 2               
+000000r 2               ; Port bits
+000000r 2               VIA_P0 = 1 << 0
+000000r 2               VIA_P1 = 1 << 1
+000000r 2               VIA_P2 = 1 << 2
+000000r 2               VIA_P3 = 1 << 3
+000000r 2               VIA_P4 = 1 << 4
+000000r 2               VIA_P5 = 1 << 5
+000000r 2               VIA_P6 = 1 << 6
+000000r 2               VIA_P7 = 1 << 7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; LED Ports and Pins
+000000r 2               ;
+000000r 2               LED_PORT  = VIA2_PORTA
+000000r 2               PIN_LED = VIA_P0
+000000r 2               
+000000r 2               ;
+000000r 2               ; LCD Port and Pins
+000000r 2               ;
+000000r 2               .if lcd_type=20
+000000r 2                 ; built in 20x4
+000000r 2                 LCD_DDR  = VIA2_DDRA
+000000r 2                 LCD_PORT = VIA2_PORTA
+000000r 2               .elseif lcd_type=40
+000000r 2                 ; test 40x4
+000000r 2                 LCD_DDR  = VIA1_DDRA
+000000r 2                 LCD_PORT = VIA1_PORTA
+000000r 2               .endif
+000000r 2               
+000000r 2               LCD_E2 = VIA_P0
+000000r 2               LCD_RS = VIA_P1
+000000r 2               LCD_RW = VIA_P2
+000000r 2               LCD_E1 = VIA_P3
+000000r 2               LCD_D4 = VIA_P4
+000000r 2               LCD_D5 = VIA_P5
+000000r 2               LCD_D6 = VIA_P6
+000000r 2               LCD_D7 = VIA_P7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; PS/2 Ports and Pins
+000000r 2               ;
+000000r 2               PS2_PORT = VIA2_PORTA
+000000r 2               PS2_DDR  = VIA2_DDRA
+000000r 2               
+000000r 2               PS2_CLK  = VIA_P6
+000000r 2               PS2_DATA = VIA_P7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; SPI Ports and Pins
+000000r 2               ;
+000000r 2               SPI_PORT = VIA2_PORTB
+000000r 2               SPI_DDR  = VIA2_DDRB
+000000r 2               SPI_SR   = VIA2_SR
+000000r 2               SPI_ACR  = VIA2_ACR
+000000r 2               
+000000r 2               spi_device_sdcard	  = %00011100 ;spi device number 1110??? (SPI_SS1)
+000000r 2               spi_device_ra8875   = %00011010 ;spi device number 1101??? (SPI_SS2)
+000000r 2               spi_device_rtc	  	= %00010110 ;spi device number 1011??? (SPI_SS3)
+000000r 2               spi_device_deselect = %00011110 ; deselect any device
+000000r 2               SDCARD_DETECT			= VIA_P6
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; SNES Ports and Pins
+000000r 2               ;
+000000r 2               SNES_PORT = VIA2_PORTA
+000000r 2               SNES_DDR  = VIA2_DDRA
+000000r 2               
+000000r 2               SNES_CLK   = VIA_P1
+000000r 2               SNES_LATCH = VIA_P2
+000000r 2               SNES_DATA1 = VIA_P3
+000000r 2               SNES_DATA2 = VIA_P4
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               ACIA1_DATA    = __ACIA1_START__ + $00
+000000r 2               ACIA1_STATUS  = __ACIA1_START__ + $01
+000000r 2               ACIA1_COMMAND = __ACIA1_START__ + $02
+000000r 2               ACIA1_CONTROL = __ACIA1_START__ + $03
+000000r 2               
+000000r 2               ; ACIA control register bit values
+000000r 2               ACIA_STOP_BITS_1 = %00000000
+000000r 2               ACIA_STOP_BITS_2 = %10000000
+000000r 2               ACIA_DATA_BITS_8 = %00000000
+000000r 2               ACIA_DATA_BITS_7 = %00100000
+000000r 2               ACIA_DATA_BITS_6 = %01000000
+000000r 2               ACIA_DATA_BITS_5 = %01100000
+000000r 2               ACIA_CLOCK_EXT   = %00000000
+000000r 2               ACIA_CLOCK_INT   = %00010000
+000000r 2               ACIA_BAUD_16XEXT = %00000000
+000000r 2               ACIA_BAUD_50     = %00000001
+000000r 2               ACIA_BAUD_75     = %00000010
+000000r 2               ACIA_BAUD_109    = %00000011
+000000r 2               ACIA_BAUD_134    = %00000100
+000000r 2               ACIA_BAUD_150    = %00000101
+000000r 2               ACIA_BAUD_300    = %00000110
+000000r 2               ACIA_BAUD_600    = %00000111
+000000r 2               ACIA_BAUD_1200   = %00001000
+000000r 2               ACIA_BAUD_1800   = %00001001
+000000r 2               ACIA_BAUD_2400   = %00001010
+000000r 2               ACIA_BAUD_3600   = %00001011
+000000r 2               ACIA_BAUD_4800   = %00001100
+000000r 2               ACIA_BAUD_7200   = %00001101
+000000r 2               ACIA_BAUD_9600   = %00001110
+000000r 2               ACIA_BAUD_19200  = %00001111
+000000r 2               
+000000r 2               ; ACIA command register bit values
+000000r 2               ACIA_PARITY_ODD              = %00000000
+000000r 2               ACIA_PARITY_EVEN             = %01000000
+000000r 2               ACIA_PARITY_MARK             = %10000000
+000000r 2               ACIA_PARITY_SPACE            = %11000000
+000000r 2               ACIA_PARITY_DISABLE          = %00000000
+000000r 2               ACIA_PARITY_ENABLE           = %00100000
+000000r 2               ACIA_ECHO_DISABLE            = %00000000
+000000r 2               ACIA_ECHO_ENABLE             = %00010000
+000000r 2               ACIA_TX_INT_DISABLE_RTS_HIGH = %00000000
+000000r 2               ACIA_TX_INT_ENABLE_RTS_LOW   = %00000100
+000000r 2               ACIA_TX_INT_DISABLE_RTS_LOW  = %00001000
+000000r 2               ACIA_TX_INT_DISABLE_BREAK    = %00001100
+000000r 2               ACIA_RX_INT_ENABLE           = %00000000
+000000r 2               ACIA_RX_INT_DISABLE          = %00000010
+000000r 2               ACIA_DTR_HIGH                = %00000000
+000000r 2               ACIA_DTR_LOW                 = %00000001
+000000r 2               
+000000r 2               ; ACIA status register bit masks
+000000r 2               ACIA_STATUS_IRQ        = 1 << 7
+000000r 2               ACIA_STATUS_DSR        = 1 << 6
+000000r 2               ACIA_STATUS_DCD        = 1 << 5
+000000r 2               ACIA_STATUS_TX_EMPTY   = 1 << 4
+000000r 2               ACIA_STATUS_RX_FULL    = 1 << 3
+000000r 2               ACIA_STATUS_OVERRUN    = 1 << 2
+000000r 2               ACIA_STATUS_FRAME_ERR  = 1 << 1
+000000r 2               ACIA_STATUS_PARITY_ERR = 1 << 0
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               .include "zeropage.inc"
+000000r 2               
+000000r 2               .ifndef ZEROPAGE_INC
+000000r 2               ZEROPAGE_INC = 1
+000000r 2               
+000000r 2               
+000000r 2               .globalzp sp
+000000r 2               .globalzp sreg
+000000r 2               .globalzp regsave
+000000r 2               
+000000r 2               .globalzp tmp1
+000000r 2               .globalzp tmp2
+000000r 2               .globalzp tmp3
+000000r 2               .globalzp tmp4
+000000r 2               .globalzp tmp5
+000000r 2               .globalzp ptr1
+000000r 2               .globalzp ptr2
+000000r 2               .globalzp ptr3
+000000r 2               .globalzp ptr4
+000000r 2               
+000000r 2               .globalzp console_out_ptr
+000000r 2               .globalzp lcd_out_ptr
+000000r 2               .globalzp ra8875_out_ptr
+000000r 2               
+000000r 2               .globalzp zp_sd_address
+000000r 2               .globalzp zp_sd_currentsector
+000000r 2               .globalzp fat32_fatstart
+000000r 2               .globalzp fat32_datastart
+000000r 2               .globalzp fat32_rootcluster
+000000r 2               .globalzp fat32_sectorspercluster
+000000r 2               .globalzp fat32_pendingsectors
+000000r 2               .globalzp fat32_address
+000000r 2               .globalzp fat32_nextcluster
+000000r 2               .globalzp fat32_bytesremaining
+000000r 2               .globalzp fat32_errorstage
+000000r 2               .globalzp fat32_filenamepointer
+000000r 2               
+000000r 2               
+000000r 2               .globalzp DPL
+000000r 2               .globalzp DPH
+000000r 2               
+000000r 2               .globalzp lcd_enable_pins
+000000r 2               .globalzp lcd_row
+000000r 2               .globalzp lcd_column
+000000r 2               
+000000r 2               .globalzp controller1
+000000r 2               .globalzp controller2
+000000r 2               
+000000r 2               .globalzp spi_sr
+000000r 2               .globalzp read_blkptr, write_blkptr
+000000r 2               .globalzp sd_tmp
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               lba_addr 		= $0280		; 4 bytes
+000000r 2               blocks			= $0284		; 3 bytes blocks to read, 3 bytes sufficient to address 4GB -> 4294967296 >> 9 = 8388608 ($800000) max blocks/file
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; last known timestamp with date set to 1970-01-01
+000000r 2               rtc_systime_t = $0300
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; time struct with date set to 1970-01-01
+000000r 2               .struct time_t
+000000r 2               		  tm_sec	.byte		;0-59
+000000r 2               		  tm_min	.byte		;0-59
+000000r 2               		  tm_hour	.byte		;0-23
+000000r 2               		  tm_wday	.byte		;
+000000r 2               		  tm_mday	.byte		;1-31
+000000r 2               		  tm_mon	.byte	;1	;0-11 0-jan, 11-dec
+000000r 2               		  tm_year	.byte  ;70	;years since 1900
+000000r 2               .endstruct
+000000r 2               
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               
+000000r 1               ;
+000000r 1               ; https://bitbucket.org/steckschwein/steckschwein-code/src/master/steckos/libsrc/spi/
+000000r 1               ;
+000000r 1               
+000000r 1               .export spi_select_device, spi_deselect, spi_r_byte, spi_rw_byte
+000000r 1               
+000000r 1               EOK = 0
+000000r 1               EBUSY = 6
+000000r 1               
+000000r 1               .code
+000000r 1               
+000000r 1               
+000000r 1                 ; select spi device given in A. the method is aware of the current processor state, especially the interrupt flag
+000000r 1                 ; in:
+000000r 1                 ;    A = spi device - one of
+000000r 1                 ;        spi_device_sdcard    =   %00011100 ;spi device number 1110??? (SPI_SS1)
+000000r 1                 ;        spi_device_keyboard =   %00011010 ;spi device number 1101??? (SPI_SS2)
+000000r 1                 ;        spi_device_rtc        =   %00010110 ;spi device number 1011??? (SPI_SS3)
+000000r 1                 ; out:
+000000r 1                 ;    Z = 1 spi for given device could be selected (not busy), Z=0 otherwise
+000000r 1                 spi_select_device:
+000000r 1  08                   php
+000001r 1  78                   sei ;critical section start
+000002r 1  48                   pha
+000003r 1               
+000003r 1                       ;check busy and select within sei => !ATTENTION! is busy check and spi device select must be "atomic", otherwise the spi state may change in between
+000003r 1                       ;    Z=1 not busy, Z=0 spi is busy and A=#EBUSY
+000003r 1                 spi_isbusy:
+000003r 1  AD rr rr             lda SPI_PORT
+000006r 1  29 1E                and #%00011110
+000008r 1  C9 1E                cmp #%00011110
+00000Ar 1  D0 08                bne @l_exit        ;busy, leave section, device could not be selected
+00000Cr 1               
+00000Cr 1  68                   pla
+00000Dr 1  8D rr rr             sta SPI_PORT
+000010r 1               
+000010r 1  28                   plp
+000011r 1  A9 00                lda #EOK            ;exit ok
+000013r 1  60                   rts
+000014r 1                 @l_exit:
+000014r 1  68                   pla
+000015r 1  28                   plp                ;restore P (interrupt flag)
+000016r 1  A9 06                lda #EBUSY
+000018r 1  60                   rts
+000019r 1               
+000019r 1               
+000019r 1               
+000019r 1                 spi_deselect:
+000019r 1  48                   pha
+00001Ar 1  A9 1E                lda #spi_device_deselect
+00001Cr 1  8D rr rr             sta SPI_PORT
+00001Fr 1  68                   pla
+000020r 1  60                   rts
+000021r 1               
+000021r 1               
+000021r 1               ;----------------------------------------------------------------------------------------------
+000021r 1               ; Receive byte VIA SPI
+000021r 1               ; Received byte in A at exit, Z, N flags set accordingly to A
+000021r 1               ; Destructive: A,X
+000021r 1               ;----------------------------------------------------------------------------------------------
+000021r 1               spi_r_byte:
+000021r 1  AD rr rr             lda SPI_PORT    ; Port laden
+000024r 1  29 FE                AND #$fe          ; Takt ausschalten
+000026r 1  AA                   TAX                         ; aufheben
+000027r 1  1A                   INC
+000028r 1               
+000028r 1  8D rr rr             STA SPI_PORT ; Takt An 1
+00002Br 1  8E rr rr             STX SPI_PORT ; Takt aus
+00002Er 1  8D rr rr             STA SPI_PORT ; Takt An 2
+000031r 1  8E rr rr             STX SPI_PORT ; Takt aus
+000034r 1  8D rr rr             STA SPI_PORT ; Takt An 3
+000037r 1  8E rr rr             STX SPI_PORT ; Takt aus
+00003Ar 1  8D rr rr             STA SPI_PORT ; Takt An 4
+00003Dr 1  8E rr rr             STX SPI_PORT ; Takt aus
+000040r 1  8D rr rr             STA SPI_PORT ; Takt An 5
+000043r 1  8E rr rr             STX SPI_PORT ; Takt aus
+000046r 1  8D rr rr             STA SPI_PORT ; Takt An 6
+000049r 1  8E rr rr             STX SPI_PORT ; Takt aus
+00004Cr 1  8D rr rr             STA SPI_PORT ; Takt An 7
+00004Fr 1  8E rr rr             STX SPI_PORT ; Takt aus
+000052r 1  8D rr rr             STA SPI_PORT ; Takt An 8
+000055r 1  8E rr rr             STX SPI_PORT ; Takt aus
+000058r 1               
+000058r 1  AD rr rr             lda SPI_SR
+00005Br 1  60                   rts
+00005Cr 1               
+00005Cr 1               
+00005Cr 1               ;----------------------------------------------------------------------------------------------
+00005Cr 1               ; Transmit byte VIA SPI
+00005Cr 1               ; Byte to transmit in A, received byte in A at exit
+00005Cr 1               ; Destructive: A,X,Y
+00005Cr 1               ;----------------------------------------------------------------------------------------------
+00005Cr 1               spi_rw_byte:
+00005Cr 1  85 rr                sta spi_sr    ; zu transferierendes byte im akku retten
+00005Er 1               
+00005Er 1  A2 08                ldx #$08
+000060r 1               
+000060r 1  AD rr rr             lda SPI_PORT    ; Port laden
+000063r 1  29 FE                and #$fe          ; SPICLK loeschen
+000065r 1               
+000065r 1  0A                   asl                ; Nach links rotieren, damit das bit nachher an der richtigen stelle steht
+000066r 1  A8                   tay                 ; bunkern
+000067r 1               
+000067r 1               @l:
+000067r 1  26 rr                rol spi_sr
+000069r 1  98                   tya                ; portinhalt
+00006Ar 1  6A                   ror                ; datenbit reinschieben
+00006Br 1               
+00006Br 1  8D rr rr             sta SPI_PORT    ; ab in den port
+00006Er 1  EE rr rr             inc SPI_PORT    ; takt an
+000071r 1  8D rr rr             sta SPI_PORT    ; takt aus
+000074r 1               
+000074r 1  CA                   dex
+000075r 1  D0 F0                bne @l            ; schon acht mal?
+000077r 1               
+000077r 1  AD rr rr             lda SPI_SR        ; Schieberegister auslesen
+00007Ar 1               
+00007Ar 1  60                   rts
+00007Ar 1               

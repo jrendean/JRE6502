@@ -1,0 +1,156 @@
+ca65 V2.19 - Git cc3c40c
+Main file   : ../common/source/strings.s
+Current file: ../common/source/strings.s
+
+000000r 1               
+000000r 1               .include "zeropage.inc"
+000000r 2               
+000000r 2               .ifndef ZEROPAGE_INC
+000000r 2               ZEROPAGE_INC = 1
+000000r 2               
+000000r 2               
+000000r 2               .globalzp sp
+000000r 2               .globalzp sreg
+000000r 2               .globalzp regsave
+000000r 2               
+000000r 2               .globalzp tmp1
+000000r 2               .globalzp tmp2
+000000r 2               .globalzp tmp3
+000000r 2               .globalzp tmp4
+000000r 2               .globalzp tmp5
+000000r 2               .globalzp ptr1
+000000r 2               .globalzp ptr2
+000000r 2               .globalzp ptr3
+000000r 2               .globalzp ptr4
+000000r 2               
+000000r 2               .globalzp console_out_ptr
+000000r 2               .globalzp lcd_out_ptr
+000000r 2               .globalzp ra8875_out_ptr
+000000r 2               
+000000r 2               .globalzp zp_sd_address
+000000r 2               .globalzp zp_sd_currentsector
+000000r 2               .globalzp fat32_fatstart
+000000r 2               .globalzp fat32_datastart
+000000r 2               .globalzp fat32_rootcluster
+000000r 2               .globalzp fat32_sectorspercluster
+000000r 2               .globalzp fat32_pendingsectors
+000000r 2               .globalzp fat32_address
+000000r 2               .globalzp fat32_nextcluster
+000000r 2               .globalzp fat32_bytesremaining
+000000r 2               .globalzp fat32_errorstage
+000000r 2               .globalzp fat32_filenamepointer
+000000r 2               
+000000r 2               
+000000r 2               .globalzp DPL
+000000r 2               .globalzp DPH
+000000r 2               
+000000r 2               .globalzp lcd_enable_pins
+000000r 2               .globalzp lcd_row
+000000r 2               .globalzp lcd_column
+000000r 2               
+000000r 2               .globalzp controller1
+000000r 2               .globalzp controller2
+000000r 2               
+000000r 2               .globalzp spi_sr
+000000r 2               .globalzp read_blkptr, write_blkptr
+000000r 2               .globalzp sd_tmp
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               lba_addr 		= $0280		; 4 bytes
+000000r 2               blocks			= $0284		; 3 bytes blocks to read, 3 bytes sufficient to address 4GB -> 4294967296 >> 9 = 8388608 ($800000) max blocks/file
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; last known timestamp with date set to 1970-01-01
+000000r 2               rtc_systime_t = $0300
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; time struct with date set to 1970-01-01
+000000r 2               .struct time_t
+000000r 2               		  tm_sec	.byte		;0-59
+000000r 2               		  tm_min	.byte		;0-59
+000000r 2               		  tm_hour	.byte		;0-23
+000000r 2               		  tm_wday	.byte		;
+000000r 2               		  tm_mday	.byte		;1-31
+000000r 2               		  tm_mon	.byte	;1	;0-11 0-jan, 11-dec
+000000r 2               		  tm_year	.byte  ;70	;years since 1900
+000000r 2               .endstruct
+000000r 2               
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               
+000000r 1               .export str_length, str_compare, str_trim
+000000r 1               
+000000r 1                 ;
+000000r 1                 ; IN:
+000000r 1                 ; OUT: A is the length of the string
+000000r 1                 ; ZP: ptr1
+000000r 1                 str_length:
+000000r 1  5A               phy       ; save Y
+000001r 1  A0 00            ldy #0    ; set Y to 0
+000003r 1                 @loop:
+000003r 1  B1 rr            lda (ptr1), y ; load value from ptr1 index Y in to A
+000005r 1  F0 03            beq @done   ; if value equals 0 branch to @done
+000007r 1  C8               iny       ; increment Y
+000008r 1  80 F9            bra @loop   ; branch back
+00000Ar 1                 @done:
+00000Ar 1  98               tya       ; transfer Y to A
+00000Br 1  7A               ply       ; restore Y
+00000Cr 1  60               rts       ; return
+00000Dr 1               
+00000Dr 1               
+00000Dr 1                 ; http://6502.org/source/strings/comparisons.html
+00000Dr 1                 ;
+00000Dr 1                 ;
+00000Dr 1                 ;
+00000Dr 1                 ;
+00000Dr 1                 str_compare:
+00000Dr 1  5A                 phy
+00000Er 1  A0 00              ldy #$00
+000010r 1                 @compare:
+000010r 1  B1 rr              lda (ptr1),y
+000012r 1  F0 09              beq @ptr1_end
+000014r 1  D1 rr              cmp (ptr2),y
+000016r 1  D0 07              bne @set_result
+000018r 1  C8                 iny
+000019r 1  F0 0C              beq @equal ; prevention against infinite loop
+00001Br 1  80 F3              bra @compare
+00001Dr 1                 @ptr1_end:
+00001Dr 1  D1 rr              cmp (ptr2),y
+00001Fr 1                 @set_result:
+00001Fr 1  F0 06              beq @equal
+000021r 1  30 08              bmi @less_than
+000023r 1  A9 01              lda #$01
+000025r 1  80 08              bra @return
+000027r 1                 @equal:
+000027r 1  A9 00              lda #$00
+000029r 1  80 04              bra @return
+00002Br 1                 @less_than:
+00002Br 1  A9 FF              lda #$ff
+00002Dr 1  80 00              bra @return
+00002Fr 1                 @return:
+00002Fr 1  7A                 ply
+000030r 1  60                 rts
+000031r 1               
+000031r 1               
+000031r 1               
+000031r 1                 ;
+000031r 1                 ;
+000031r 1                 ;
+000031r 1                 ;
+000031r 1                 str_trim:
+000031r 1  5A               phy
+000032r 1  A0 00            ldy #0
+000034r 1                 @loop:
+000034r 1  B1 rr            lda (ptr1), y
+000036r 1  F0 00            beq @done
+000038r 1               
+000038r 1                 @done:
+000038r 1  7A               ply
+000039r 1  60               rts
+000039r 1               

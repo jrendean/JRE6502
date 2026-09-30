@@ -1,0 +1,311 @@
+Modules list:
+-------------
+main.o:
+    CODE              Offs=000000  Size=00026C  Align=00001  Fill=0000
+    RODATA            Offs=000000  Size=0000FC  Align=00001  Fill=0000
+    BSS               Offs=000000  Size=000015  Align=00001  Fill=0000
+    VECTORS           Offs=000000  Size=000006  Align=00001  Fill=0000
+debugger.o:
+    CODE              Offs=00026C  Size=000075  Align=00001  Fill=0000
+    RODATA            Offs=0000FC  Size=000111  Align=00001  Fill=0000
+    BSS               Offs=000015  Size=000015  Align=00001  Fill=0000
+via.o:
+    CODE              Offs=0002E1  Size=000015  Align=00001  Fill=0000
+led.o:
+    CODE              Offs=0002F6  Size=00002B  Align=00001  Fill=0000
+utils.o:
+    CODE              Offs=000321  Size=00002B  Align=00001  Fill=0000
+    RODATA            Offs=00020D  Size=000010  Align=00001  Fill=0000
+console.o:
+    CODE              Offs=00034C  Size=000161  Align=00001  Fill=0000
+zeropage.o:
+    ZEROPAGE          Offs=000000  Size=000049  Align=00001  Fill=0000
+strings.o:
+    CODE              Offs=0004AD  Size=00003A  Align=00001  Fill=0000
+modem2.o:
+    CODE              Offs=0004E7  Size=000133  Align=00001  Fill=0000
+    RODATA            Offs=000300  Size=000300  Align=00100  Fill=00E3
+    BSS               Offs=00002A  Size=00008C  Align=00001  Fill=0000
+    ZEROPAGE          Offs=000049  Size=000009  Align=00001  Fill=0000
+debug.o:
+    CODE              Offs=00061A  Size=000204  Align=00001  Fill=0000
+keyboard.o:
+    CODE              Offs=00081E  Size=0003A1  Align=00001  Fill=0000
+snes.o:
+    CODE              Offs=000BBF  Size=000133  Align=00001  Fill=0000
+memory.o:
+    CODE              Offs=000CF2  Size=000018  Align=00001  Fill=0000
+spi.o:
+    CODE              Offs=000D0A  Size=00007B  Align=00001  Fill=0000
+sdcard2.o:
+    CODE              Offs=000D85  Size=0001BC  Align=00001  Fill=0000
+rtc.o:
+    CODE              Offs=000F41  Size=0000A7  Align=00001  Fill=0000
+lcd20x4.o:
+    CODE              Offs=000FE8  Size=00017E  Align=00001  Fill=0000
+    RODATA            Offs=000600  Size=00000C  Align=00001  Fill=0000
+
+
+Segment list:
+-------------
+Name                   Start     End    Size  Align
+----------------------------------------------------
+ZEROPAGE              000000  000051  000052  00001
+BSS                   000200  0002B5  0000B6  00001
+CODE                  008000  009165  001166  00001
+RODATA                009166  009771  00060C  00100
+VECTORS               00FFFA  00FFFF  000006  00001
+
+
+Exports list by name:
+---------------------
+DPH                       000039 RLZ    DPL                       000038 RLZ    
+KBINIT                    008A81 RLA    KBINPUT                   008821 RLA    
+__ACIA1_START__           00FE40 RLA    __RAM_SIZE__              007E00 REA    
+__RAM_START__             000200 RLA    __VIA1_START__            00FE00 RLA    
+__VIA2_START__            00FE20 RLA    b2ad                      008412 RLA    
+console_init              00834C RLA    console_out_ptr           000014 RLZ    
+console_read_string       008398 RLA    console_write_byte        008379 RLA    
+console_write_hex         008386 RLA    console_write_newline     0083E9 RLA    
+console_write_string      008367 RLA    controller1               00003D RLZ    
+controller2               000040 RLZ    convert_to_hex            008321 RLA    
+debugger_run              00826C RLA    delay_ms                  00833E RLA    
+dump_memory               008716 RLA    dump_registers            00861A RLA    
+joystick_scan             008BBF RLA    joystick_test             008BF8 RLA    
+jump_memory               0086D8 RLA    lcd_init                  008FE8 RLA    
+lcd_out_ptr               000016 RLZ    lcd_print_string          00902B RLA    
+led_flash                 008312 RLA    led_init                  0082F6 RLA    
+led_off                   008307 RLA    led_on                    0082FC RLA    
+mem_clear                 008CF2 RLA    modem_receive             0084E7 RLA    
+primm_console             0083F6 RLA    ptr1                      000008 RLZ    
+ptr2                      00000A RLZ    read_blkptr               000043 RLZ    
+rtc_init                  008F41 RLA    rtc_systime_update        008F88 RLA    
+sd_tmp                    000047 RLZ    sdcard_init               008D8B RLA    
+spi_deselect              008D23 RLA    spi_r_byte                008D2B RLA    
+spi_rw_byte               008D66 RLA    spi_select_device         008D0A RLA    
+spi_sr                    000048 RLZ    str_compare               0084BA RLA    
+str_length                0084AD RLA    tmp1                      000010 RLZ    
+tmp2                      000011 RLZ    tmp3                      000012 RLZ    
+via_init                  0082E1 RLA    write_blkptr              000045 RLZ    
+write_memory              0086F2 RLA    
+
+
+Exports list by value:
+----------------------
+ptr1                      000008 RLZ    ptr2                      00000A RLZ    
+tmp1                      000010 RLZ    tmp2                      000011 RLZ    
+tmp3                      000012 RLZ    console_out_ptr           000014 RLZ    
+lcd_out_ptr               000016 RLZ    DPL                       000038 RLZ    
+DPH                       000039 RLZ    controller1               00003D RLZ    
+controller2               000040 RLZ    read_blkptr               000043 RLZ    
+write_blkptr              000045 RLZ    sd_tmp                    000047 RLZ    
+spi_sr                    000048 RLZ    __RAM_START__             000200 RLA    
+__RAM_SIZE__              007E00 REA    debugger_run              00826C RLA    
+via_init                  0082E1 RLA    led_init                  0082F6 RLA    
+led_on                    0082FC RLA    led_off                   008307 RLA    
+led_flash                 008312 RLA    convert_to_hex            008321 RLA    
+delay_ms                  00833E RLA    console_init              00834C RLA    
+console_write_string      008367 RLA    console_write_byte        008379 RLA    
+console_write_hex         008386 RLA    console_read_string       008398 RLA    
+console_write_newline     0083E9 RLA    primm_console             0083F6 RLA    
+b2ad                      008412 RLA    str_length                0084AD RLA    
+str_compare               0084BA RLA    modem_receive             0084E7 RLA    
+dump_registers            00861A RLA    jump_memory               0086D8 RLA    
+write_memory              0086F2 RLA    dump_memory               008716 RLA    
+KBINPUT                   008821 RLA    KBINIT                    008A81 RLA    
+joystick_scan             008BBF RLA    joystick_test             008BF8 RLA    
+mem_clear                 008CF2 RLA    spi_select_device         008D0A RLA    
+spi_deselect              008D23 RLA    spi_r_byte                008D2B RLA    
+spi_rw_byte               008D66 RLA    sdcard_init               008D8B RLA    
+rtc_init                  008F41 RLA    rtc_systime_update        008F88 RLA    
+lcd_init                  008FE8 RLA    lcd_print_string          00902B RLA    
+__VIA1_START__            00FE00 RLA    __VIA2_START__            00FE20 RLA    
+__ACIA1_START__           00FE40 RLA    
+
+
+Imports list:
+-------------
+DPH (zeropage.o):
+    lcd20x4.o                 ../common/include/zeropage.inc:39
+    console.o                 ../common/include/zeropage.inc:39
+DPL (zeropage.o):
+    lcd20x4.o                 ../common/include/zeropage.inc:38
+    console.o                 ../common/include/zeropage.inc:38
+KBINIT (keyboard.o):
+    main.o                    main.s:14
+KBINPUT (keyboard.o):
+    main.o                    main.s:14
+__ACIA1_START__ ([linker generated]):
+    lcd20x4.o                 ../common/include/io.inc:10
+    rtc.o                     ../common/include/io.inc:10
+    sdcard2.o                 ../common/include/io.inc:10
+    spi.o                     ../common/include/io.inc:10
+    snes.o                    ../common/include/io.inc:10
+    keyboard.o                ../common/include/io.inc:10
+    modem2.o                  ../common/include/io.inc:10
+    console.o                 ../common/include/io.inc:10
+    led.o                     ../common/include/io.inc:10
+    via.o                     ../common/include/io.inc:10
+    main.o                    ../common/include/io.inc:10
+__RAM_SIZE__ ([linker generated]):
+    memory.o                  ../common/source/memory.s:4
+__RAM_START__ ([linker generated]):
+    memory.o                  ../common/source/memory.s:4
+__VIA1_START__ ([linker generated]):
+    lcd20x4.o                 ../common/include/io.inc:8
+    rtc.o                     ../common/include/io.inc:8
+    sdcard2.o                 ../common/include/io.inc:8
+    spi.o                     ../common/include/io.inc:8
+    snes.o                    ../common/include/io.inc:8
+    keyboard.o                ../common/include/io.inc:8
+    modem2.o                  ../common/include/io.inc:8
+    console.o                 ../common/include/io.inc:8
+    led.o                     ../common/include/io.inc:8
+    via.o                     ../common/include/io.inc:8
+    main.o                    ../common/include/io.inc:8
+__VIA2_START__ ([linker generated]):
+    lcd20x4.o                 ../common/include/io.inc:9
+    rtc.o                     ../common/include/io.inc:9
+    sdcard2.o                 ../common/include/io.inc:9
+    spi.o                     ../common/include/io.inc:9
+    snes.o                    ../common/include/io.inc:9
+    keyboard.o                ../common/include/io.inc:9
+    modem2.o                  ../common/include/io.inc:9
+    console.o                 ../common/include/io.inc:9
+    led.o                     ../common/include/io.inc:9
+    via.o                     ../common/include/io.inc:9
+    main.o                    ../common/include/io.inc:9
+b2ad (console.o):
+    main.o                    main.s:22
+console_init (console.o):
+    main.o                    main.s:11
+console_out_ptr (zeropage.o):
+    modem2.o                  ../common/include/zeropage.inc:20
+    console.o                 ../common/include/zeropage.inc:20
+    debugger.o                ../common/include/zeropage.inc:20
+    main.o                    ../common/include/zeropage.inc:20
+console_read_string (console.o):
+    debugger.o                debugger.s:6
+    main.o                    main.s:11
+console_write_byte (console.o):
+    debug.o                   ../common/source/debug.s:5
+    modem2.o                  ../common/source/modem2.s:6
+    main.o                    main.s:11
+console_write_hex (console.o):
+    debug.o                   ../common/source/debug.s:5
+    main.o                    main.s:11
+console_write_newline (console.o):
+    snes.o                    ../common/source/snes.s:7
+    debug.o                   ../common/source/debug.s:5
+    debugger.o                debugger.s:6
+    main.o                    main.s:11
+console_write_string (console.o):
+    modem2.o                  ../common/source/modem2.s:6
+    debugger.o                debugger.s:6
+    main.o                    main.s:11
+controller1 (zeropage.o):
+    snes.o                    ../common/include/zeropage.inc:45
+controller2 (zeropage.o):
+    snes.o                    ../common/include/zeropage.inc:46
+convert_to_hex (utils.o):
+    lcd20x4.o                 ../common/source/lcd20x4.s:4
+    console.o                 ../common/source/console.s:4
+debugger_run (debugger.o):
+    main.o                    main.s:12
+delay_ms (utils.o):
+    lcd20x4.o                 ../common/source/lcd20x4.s:4
+    snes.o                    ../common/source/snes.s:8
+    led.o                     ../common/source/led.s:3
+dump_memory (debug.o):
+    debugger.o                debugger.s:5
+dump_registers (debug.o):
+    debugger.o                debugger.s:5
+joystick_scan (snes.o):
+    main.o                    main.s:19
+joystick_test (snes.o):
+    main.o                    main.s:19
+jump_memory (debug.o):
+    debugger.o                debugger.s:5
+lcd_init (lcd20x4.o):
+    main.o                    main.s:10
+lcd_out_ptr (zeropage.o):
+    lcd20x4.o                 ../common/include/zeropage.inc:21
+    main.o                    ../common/include/zeropage.inc:21
+lcd_print_string (lcd20x4.o):
+    main.o                    main.s:10
+led_flash (led.o):
+    main.o                    main.s:9
+led_init (led.o):
+    main.o                    main.s:9
+led_off (led.o):
+    main.o                    main.s:9
+led_on (led.o):
+    main.o                    main.s:9
+mem_clear (memory.o):
+    debugger.o                debugger.s:7
+    main.o                    main.s:18
+modem_receive (modem2.o):
+    main.o                    main.s:13
+primm_console (console.o):
+    snes.o                    ../common/source/snes.s:7
+    debug.o                   ../common/source/debug.s:5
+    main.o                    main.s:7
+ptr1 (zeropage.o):
+    memory.o                  ../common/include/zeropage.inc:15
+    debug.o                   ../common/include/zeropage.inc:15
+    strings.o                 ../common/include/zeropage.inc:15
+    console.o                 ../common/include/zeropage.inc:15
+    debugger.o                ../common/include/zeropage.inc:15
+    main.o                    ../common/include/zeropage.inc:15
+ptr2 (zeropage.o):
+    debug.o                   ../common/include/zeropage.inc:16
+    strings.o                 ../common/include/zeropage.inc:16
+    main.o                    ../common/include/zeropage.inc:16
+read_blkptr (zeropage.o):
+    sdcard2.o                 ../common/include/zeropage.inc:49
+rtc_init (rtc.o):
+    main.o                    main.s:17
+rtc_systime_update (rtc.o):
+    main.o                    main.s:17
+sd_tmp (zeropage.o):
+    sdcard2.o                 ../common/include/zeropage.inc:50
+sdcard_init (sdcard2.o):
+    main.o                    main.s:15
+spi_deselect (spi.o):
+    rtc.o                     ../common/source/rtc.s:10
+    sdcard2.o                 ../common/source/sdcard2.s:5
+spi_r_byte (spi.o):
+    rtc.o                     ../common/source/rtc.s:10
+    sdcard2.o                 ../common/source/sdcard2.s:5
+spi_rw_byte (spi.o):
+    rtc.o                     ../common/source/rtc.s:10
+    sdcard2.o                 ../common/source/sdcard2.s:5
+spi_select_device (spi.o):
+    rtc.o                     ../common/source/rtc.s:10
+    sdcard2.o                 ../common/source/sdcard2.s:5
+spi_sr (zeropage.o):
+    spi.o                     ../common/include/zeropage.inc:48
+str_compare (strings.o):
+    main.o                    main.s:7
+str_length (strings.o):
+    debug.o                   ../common/source/debug.s:6
+tmp1 (zeropage.o):
+    lcd20x4.o                 ../common/include/zeropage.inc:10
+    rtc.o                     ../common/include/zeropage.inc:10
+    snes.o                    ../common/include/zeropage.inc:10
+    debug.o                   ../common/include/zeropage.inc:10
+    console.o                 ../common/include/zeropage.inc:10
+tmp2 (zeropage.o):
+    lcd20x4.o                 ../common/include/zeropage.inc:11
+    rtc.o                     ../common/include/zeropage.inc:11
+    console.o                 ../common/include/zeropage.inc:11
+tmp3 (zeropage.o):
+    lcd20x4.o                 ../common/include/zeropage.inc:12
+    console.o                 ../common/include/zeropage.inc:12
+via_init (via.o):
+    main.o                    main.s:8
+write_blkptr (zeropage.o):
+    sdcard2.o                 ../common/include/zeropage.inc:49
+write_memory (debug.o):
+    debugger.o                debugger.s:5
+

@@ -1,0 +1,332 @@
+ca65 V2.19 - Git cc3c40c
+Main file   : debugger.s
+Current file: debugger.s
+
+000000r 1               
+000000r 1               .include "macros.inc"
+000000r 2               
+000000r 2               .ifndef MACROS_INC
+000000r 2               MACROS_IN = 1
+000000r 2               
+000000r 2               ;
+000000r 2               .macro loadptr src, dest
+000000r 2                 lda #<(src)
+000000r 2                 sta dest
+000000r 2                 lda #>(src)
+000000r 2                 sta dest + 1
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro copyptr111 src, dest
+000000r 2                 lda src
+000000r 2                 sta dest
+000000r 2                 lda src + 1
+000000r 2                 sta dest + 1
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               .macro copypointer fromptr, toptr
+000000r 2               	.repeat 2, i
+000000r 2               		lda fromptr+i
+000000r 2               		sta toptr	+i
+000000r 2               	.endrepeat
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro saveptr ptr
+000000r 2               	lda ptr
+000000r 2               	pha
+000000r 2               	lda ptr+1
+000000r 2               	pha
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro restoreptr ptr
+000000r 2               	pla
+000000r 2               	sta ptr+1
+000000r 2               	pla
+000000r 2               	sta ptr
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               .macro memcpy src, dest, n
+000000r 2               		.local @l
+000000r 2               		;.assert n<$80, error, "n must not >=$80"
+000000r 2               		ldy #n-1
+000000r 2               @l:
+000000r 2               		lda src,y
+000000r 2               		sta dest,y
+000000r 2               		dey
+000000r 2               		bpl @l
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro memcpy2ptr src, ptr, n
+000000r 2               		.local @l
+000000r 2               		;.assert n<$80, error, "n must not >=$80"
+000000r 2               		ldy #n-1
+000000r 2               @l:		lda src,y
+000000r 2               		sta (ptr),y
+000000r 2               		dey
+000000r 2               		bpl @l
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro memset dest, value, n
+000000r 2               		.local @l
+000000r 2               		;.assert n<$80, error, "n must not >=$80"
+000000r 2               		ldy #n-1
+000000r 2               		lda #value
+000000r 2               @l:		sta dest,y
+000000r 2               		dey
+000000r 2               		bpl @l
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro memclr dest, n
+000000r 2               		;.assert n<$80, error, "n must not >=$80"
+000000r 2               		.local @l
+000000r 2               		ldx #n-1
+000000r 2               @l:		stz dest,x
+000000r 2               		dex
+000000r 2               		bpl @l
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               .macro consoleprint msg
+000000r 2                   ldstr console_out_ptr, msg
+000000r 2                   jsr _console_write_string
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro debug msg
+000000r 2                   ldstr console_out_ptr, msg
+000000r 2                   jsr _console_write_string
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro debug32 msg, addr
+000000r 2                   ldstr console_out_ptr, msg
+000000r 2                   jsr _console_write_string
+000000r 2                   lda addr
+000000r 2                   jsr _console_write_hex
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               .macro _incZPWord wordp
+000000r 2               	inc wordp
+000000r 2               	;db	0xd0, 0x02
+000000r 2               	.dbyt	$d0, $02
+000000r 2               	inc wordp+1
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               .macro _cpyZPWord worda,wordb
+000000r 2               	lda worda
+000000r 2               	sta wordb
+000000r 2               	lda worda+1
+000000r 2               	sta wordb+1
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               .include "zeropage.inc"
+000000r 2               
+000000r 2               .ifndef ZEROPAGE_INC
+000000r 2               ZEROPAGE_INC = 1
+000000r 2               
+000000r 2               
+000000r 2               .globalzp sp
+000000r 2               .globalzp sreg
+000000r 2               .globalzp regsave
+000000r 2               
+000000r 2               .globalzp tmp1
+000000r 2               .globalzp tmp2
+000000r 2               .globalzp tmp3
+000000r 2               .globalzp tmp4
+000000r 2               .globalzp tmp5
+000000r 2               .globalzp ptr1
+000000r 2               .globalzp ptr2
+000000r 2               .globalzp ptr3
+000000r 2               .globalzp ptr4
+000000r 2               
+000000r 2               .globalzp console_out_ptr
+000000r 2               .globalzp lcd_out_ptr
+000000r 2               .globalzp ra8875_out_ptr
+000000r 2               
+000000r 2               .globalzp zp_sd_address
+000000r 2               .globalzp zp_sd_currentsector
+000000r 2               .globalzp fat32_fatstart
+000000r 2               .globalzp fat32_datastart
+000000r 2               .globalzp fat32_rootcluster
+000000r 2               .globalzp fat32_sectorspercluster
+000000r 2               .globalzp fat32_pendingsectors
+000000r 2               .globalzp fat32_address
+000000r 2               .globalzp fat32_nextcluster
+000000r 2               .globalzp fat32_bytesremaining
+000000r 2               .globalzp fat32_errorstage
+000000r 2               .globalzp fat32_filenamepointer
+000000r 2               
+000000r 2               
+000000r 2               .globalzp DPL
+000000r 2               .globalzp DPH
+000000r 2               
+000000r 2               .globalzp lcd_enable_pins
+000000r 2               .globalzp lcd_row
+000000r 2               .globalzp lcd_column
+000000r 2               
+000000r 2               .globalzp controller1
+000000r 2               .globalzp controller2
+000000r 2               
+000000r 2               .globalzp spi_sr
+000000r 2               .globalzp read_blkptr, write_blkptr
+000000r 2               .globalzp sd_tmp
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               lba_addr 		= $0280		; 4 bytes
+000000r 2               blocks			= $0284		; 3 bytes blocks to read, 3 bytes sufficient to address 4GB -> 4294967296 >> 9 = 8388608 ($800000) max blocks/file
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; last known timestamp with date set to 1970-01-01
+000000r 2               rtc_systime_t = $0300
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; time struct with date set to 1970-01-01
+000000r 2               .struct time_t
+000000r 2               		  tm_sec	.byte		;0-59
+000000r 2               		  tm_min	.byte		;0-59
+000000r 2               		  tm_hour	.byte		;0-23
+000000r 2               		  tm_wday	.byte		;
+000000r 2               		  tm_mday	.byte		;1-31
+000000r 2               		  tm_mon	.byte	;1	;0-11 0-jan, 11-dec
+000000r 2               		  tm_year	.byte  ;70	;years since 1900
+000000r 2               .endstruct
+000000r 2               
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               
+000000r 1               .import dump_registers, dump_memory, jump_memory, write_memory
+000000r 1               .import console_read_string, console_write_string, console_write_newline
+000000r 1               .import mem_clear
+000000r 1               .export debugger_run
+000000r 1               
+000000r 1               .code
+000000r 1               
+000000r 1                 debugger_run:
+000000r 1  A9 rr 85 rr        loadptr prompt, console_out_ptr
+000004r 1  A9 rr 85 rr  
+000008r 1  20 rr rr           jsr console_write_string
+00000Br 1               
+00000Br 1  A9 rr 85 rr        loadptr console_buffer, ptr1
+00000Fr 1  A9 rr 85 rr  
+000013r 1  A9 14              lda #BUFFLEN
+000015r 1  20 rr rr           jsr console_read_string
+000018r 1               
+000018r 1  AD rr rr           lda console_buffer
+00001Br 1  C9 6D              cmp #'m'
+00001Dr 1  F0 2C              beq @dumpmem
+00001Fr 1               
+00001Fr 1  C9 77              cmp #'w'
+000021r 1  F0 34              beq @writemem
+000023r 1               
+000023r 1  C9 6A              cmp #'j'
+000025r 1  F0 2A              beq @jumpmem
+000027r 1               
+000027r 1  C9 64              cmp #'d'
+000029r 1  F0 32              beq @dumpreg
+00002Br 1               
+00002Br 1  C9 68              cmp #'h'
+00002Dr 1  F0 34              beq @help
+00002Fr 1               
+00002Fr 1  C9 78              cmp #'x'
+000031r 1  F0 3E              beq @exit
+000033r 1               
+000033r 1  C9 63              cmp #'c'
+000035r 1  F0 0E              beq @memclear
+000037r 1               
+000037r 1  A9 rr 85 rr        loadptr unknown, console_out_ptr
+00003Br 1  A9 rr 85 rr  
+00003Fr 1  20 rr rr           jsr console_write_string
+000042r 1  4C rr rr           jmp debugger_run
+000045r 1               
+000045r 1                   @memclear:
+000045r 1  20 rr rr           jsr mem_clear
+000048r 1  4C rr rr           jmp debugger_run
+00004Br 1               
+00004Br 1                   @dumpmem:
+00004Br 1  20 rr rr           jsr dump_memory
+00004Er 1  4C rr rr           jmp debugger_run
+000051r 1               
+000051r 1                   @jumpmem:
+000051r 1  20 rr rr           jsr jump_memory
+000054r 1  4C rr rr           jmp debugger_run
+000057r 1               
+000057r 1                   @writemem:
+000057r 1  20 rr rr           jsr write_memory
+00005Ar 1  4C rr rr           jmp debugger_run
+00005Dr 1               
+00005Dr 1                   @dumpreg:
+00005Dr 1  20 rr rr           jsr dump_registers
+000060r 1  4C rr rr           jmp debugger_run
+000063r 1               
+000063r 1                   @help:
+000063r 1  A9 rr 85 rr        loadptr help, console_out_ptr
+000067r 1  A9 rr 85 rr  
+00006Br 1  20 rr rr           jsr console_write_string
+00006Er 1  4C rr rr           jmp debugger_run
+000071r 1               
+000071r 1                   @exit:
+000071r 1  20 rr rr           jsr console_write_newline
+000074r 1  60                 rts
+000075r 1               
+000075r 1               
+000075r 1               .bss
+000000r 1                   BUFFLEN = 20
+000000r 1  00 00 00 00      console_buffer: .res BUFFLEN + 1, 0
+000004r 1  00 00 00 00  
+000008r 1  00 00 00 00  
+000015r 1               
+000015r 1               .rodata
+000000r 1                 prompt:
+000000r 1  0D 0A 44 65      .byte $0D, $0A, "Debugger>", $00
+000004r 1  62 75 67 67  
+000008r 1  65 72 3E 00  
+00000Cr 1                 help:
+00000Cr 1  0D 0A            .byte $0D, $0A
+00000Er 1  6D 20 78 78      .byte "m xxxx [ll] - Look at memory at address xxxx with an optional length of l.", $0D, $0A
+000012r 1  78 78 20 5B  
+000016r 1  6C 6C 5D 20  
+00005Ar 1  77 20 78 78      .byte "w xxxx dd - Write dd to memory address xxxx", $0D, $0A
+00005Er 1  78 78 20 64  
+000062r 1  64 20 2D 20  
+000087r 1  6A 20 78 78      .byte "j xxxx - Jump to memory address xxxx", $0D, $0A
+00008Br 1  78 78 20 2D  
+00008Fr 1  20 4A 75 6D  
+0000ADr 1  64 20 2D 20      .byte "d - Dump all registers", $0D, $0A
+0000B1r 1  44 75 6D 70  
+0000B5r 1  20 61 6C 6C  
+0000C5r 1  68 20 2D 20      .byte "h - Help (this message)", $0D, $0A
+0000C9r 1  48 65 6C 70  
+0000CDr 1  20 28 74 68  
+0000DEr 1  78 20 2D 20      .byte "x - Exit", $0D, $0A
+0000E2r 1  45 78 69 74  
+0000E6r 1  0D 0A        
+0000E8r 1  0D 0A            .byte $0D, $0A
+0000EAr 1  00               .byte $00
+0000EBr 1                 unknown:
+0000EBr 1  55 6E 6B 6E      .byte "Unknown command. Type 'h' for help.", $0D, $0A, $00
+0000EFr 1  6F 77 6E 20  
+0000F3r 1  63 6F 6D 6D  
+000111r 1               
+000111r 1               

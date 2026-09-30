@@ -1,0 +1,557 @@
+ca65 V2.19 - Git cc3c40c
+Main file   : ../common/source/debug.s
+Current file: ../common/source/debug.s
+
+000000r 1               
+000000r 1               .include "macros.inc"
+000000r 2               
+000000r 2               .ifndef MACROS_INC
+000000r 2               MACROS_IN = 1
+000000r 2               
+000000r 2               ;
+000000r 2               .macro loadptr src, dest
+000000r 2                 lda #<(src)
+000000r 2                 sta dest
+000000r 2                 lda #>(src)
+000000r 2                 sta dest + 1
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro copyptr111 src, dest
+000000r 2                 lda src
+000000r 2                 sta dest
+000000r 2                 lda src + 1
+000000r 2                 sta dest + 1
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               .macro copypointer fromptr, toptr
+000000r 2               	.repeat 2, i
+000000r 2               		lda fromptr+i
+000000r 2               		sta toptr	+i
+000000r 2               	.endrepeat
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro saveptr ptr
+000000r 2               	lda ptr
+000000r 2               	pha
+000000r 2               	lda ptr+1
+000000r 2               	pha
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro restoreptr ptr
+000000r 2               	pla
+000000r 2               	sta ptr+1
+000000r 2               	pla
+000000r 2               	sta ptr
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               .macro memcpy src, dest, n
+000000r 2               		.local @l
+000000r 2               		;.assert n<$80, error, "n must not >=$80"
+000000r 2               		ldy #n-1
+000000r 2               @l:
+000000r 2               		lda src,y
+000000r 2               		sta dest,y
+000000r 2               		dey
+000000r 2               		bpl @l
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro memcpy2ptr src, ptr, n
+000000r 2               		.local @l
+000000r 2               		;.assert n<$80, error, "n must not >=$80"
+000000r 2               		ldy #n-1
+000000r 2               @l:		lda src,y
+000000r 2               		sta (ptr),y
+000000r 2               		dey
+000000r 2               		bpl @l
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro memset dest, value, n
+000000r 2               		.local @l
+000000r 2               		;.assert n<$80, error, "n must not >=$80"
+000000r 2               		ldy #n-1
+000000r 2               		lda #value
+000000r 2               @l:		sta dest,y
+000000r 2               		dey
+000000r 2               		bpl @l
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro memclr dest, n
+000000r 2               		;.assert n<$80, error, "n must not >=$80"
+000000r 2               		.local @l
+000000r 2               		ldx #n-1
+000000r 2               @l:		stz dest,x
+000000r 2               		dex
+000000r 2               		bpl @l
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               .macro consoleprint msg
+000000r 2                   ldstr console_out_ptr, msg
+000000r 2                   jsr _console_write_string
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro debug msg
+000000r 2                   ldstr console_out_ptr, msg
+000000r 2                   jsr _console_write_string
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro debug32 msg, addr
+000000r 2                   ldstr console_out_ptr, msg
+000000r 2                   jsr _console_write_string
+000000r 2                   lda addr
+000000r 2                   jsr _console_write_hex
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               .macro _incZPWord wordp
+000000r 2               	inc wordp
+000000r 2               	;db	0xd0, 0x02
+000000r 2               	.dbyt	$d0, $02
+000000r 2               	inc wordp+1
+000000r 2               .endmacro
+000000r 2               
+000000r 2               
+000000r 2               .macro _cpyZPWord worda,wordb
+000000r 2               	lda worda
+000000r 2               	sta wordb
+000000r 2               	lda worda+1
+000000r 2               	sta wordb+1
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               .include "zeropage.inc"
+000000r 2               
+000000r 2               .ifndef ZEROPAGE_INC
+000000r 2               ZEROPAGE_INC = 1
+000000r 2               
+000000r 2               
+000000r 2               .globalzp sp
+000000r 2               .globalzp sreg
+000000r 2               .globalzp regsave
+000000r 2               
+000000r 2               .globalzp tmp1
+000000r 2               .globalzp tmp2
+000000r 2               .globalzp tmp3
+000000r 2               .globalzp tmp4
+000000r 2               .globalzp tmp5
+000000r 2               .globalzp ptr1
+000000r 2               .globalzp ptr2
+000000r 2               .globalzp ptr3
+000000r 2               .globalzp ptr4
+000000r 2               
+000000r 2               .globalzp console_out_ptr
+000000r 2               .globalzp lcd_out_ptr
+000000r 2               .globalzp ra8875_out_ptr
+000000r 2               
+000000r 2               .globalzp zp_sd_address
+000000r 2               .globalzp zp_sd_currentsector
+000000r 2               .globalzp fat32_fatstart
+000000r 2               .globalzp fat32_datastart
+000000r 2               .globalzp fat32_rootcluster
+000000r 2               .globalzp fat32_sectorspercluster
+000000r 2               .globalzp fat32_pendingsectors
+000000r 2               .globalzp fat32_address
+000000r 2               .globalzp fat32_nextcluster
+000000r 2               .globalzp fat32_bytesremaining
+000000r 2               .globalzp fat32_errorstage
+000000r 2               .globalzp fat32_filenamepointer
+000000r 2               
+000000r 2               
+000000r 2               .globalzp DPL
+000000r 2               .globalzp DPH
+000000r 2               
+000000r 2               .globalzp lcd_enable_pins
+000000r 2               .globalzp lcd_row
+000000r 2               .globalzp lcd_column
+000000r 2               
+000000r 2               .globalzp controller1
+000000r 2               .globalzp controller2
+000000r 2               
+000000r 2               .globalzp spi_sr
+000000r 2               .globalzp read_blkptr, write_blkptr
+000000r 2               .globalzp sd_tmp
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               lba_addr 		= $0280		; 4 bytes
+000000r 2               blocks			= $0284		; 3 bytes blocks to read, 3 bytes sufficient to address 4GB -> 4294967296 >> 9 = 8388608 ($800000) max blocks/file
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; last known timestamp with date set to 1970-01-01
+000000r 2               rtc_systime_t = $0300
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; time struct with date set to 1970-01-01
+000000r 2               .struct time_t
+000000r 2               		  tm_sec	.byte		;0-59
+000000r 2               		  tm_min	.byte		;0-59
+000000r 2               		  tm_hour	.byte		;0-23
+000000r 2               		  tm_wday	.byte		;
+000000r 2               		  tm_mday	.byte		;1-31
+000000r 2               		  tm_mon	.byte	;1	;0-11 0-jan, 11-dec
+000000r 2               		  tm_year	.byte  ;70	;years since 1900
+000000r 2               .endstruct
+000000r 2               
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               
+000000r 1               .import console_write_byte, console_write_hex, console_write_newline, primm_console
+000000r 1               .import str_length
+000000r 1               
+000000r 1               .export dump_registers, dump_memory, jump_memory, write_memory
+000000r 1               
+000000r 1               .code
+000000r 1               
+000000r 1                 dump_registers:
+000000r 1                   ;php
+000000r 1  5A               phy
+000001r 1  DA               phx
+000002r 1  48               pha
+000003r 1               
+000003r 1  20 rr rr         jsr primm_console
+000006r 1  41 3D 24 00      .asciiz "A=$"
+00000Ar 1  68               pla ; pull a
+00000Br 1  20 rr rr         jsr console_write_hex
+00000Er 1               
+00000Er 1  20 rr rr         jsr primm_console
+000011r 1  2C 20 58 3D      .asciiz ", X=$"
+000015r 1  24 00        
+000017r 1  68               pla ; pull x
+000018r 1  20 rr rr         jsr console_write_hex
+00001Br 1               
+00001Br 1  20 rr rr         jsr primm_console
+00001Er 1  2C 20 59 3D      .asciiz ", Y=$"
+000022r 1  24 00        
+000024r 1  68               pla ; pull y
+000025r 1  20 rr rr         jsr console_write_hex
+000028r 1               
+000028r 1  20 rr rr         jsr primm_console
+00002Br 1  2C 20 53 50      .asciiz ", SP=$"
+00002Fr 1  3D 24 00     
+000032r 1  BA               tsx
+000033r 1  8A               txa
+000034r 1  20 rr rr         jsr console_write_hex
+000037r 1               
+000037r 1               
+000037r 1  08               php
+000038r 1  20 rr rr         jsr primm_console
+00003Br 1  2C 20 50 3D      .asciiz ", P=$"
+00003Fr 1  24 00        
+000041r 1  68               pla ; pull p
+000042r 1  85 rr            sta tmp1 ; save off
+000044r 1  20 rr rr         jsr console_write_hex
+000047r 1  A9 20            lda #' '
+000049r 1  20 rr rr         jsr console_write_byte
+00004Cr 1  A5 rr            lda tmp1
+00004Er 1  29 80            and #$80
+000050r 1  F0 04            beq @n0
+000052r 1  A9 4E            lda #'N'
+000054r 1  80 02            bra @n1
+000056r 1  A9 6E            @n0: lda #'n'
+000058r 1  20 rr rr         @n1: jsr console_write_byte
+00005Br 1  A5 rr            lda tmp1
+00005Dr 1  29 40            and #$40
+00005Fr 1  F0 04            beq @v0
+000061r 1  A9 56            lda #'V'
+000063r 1  80 02            bra @v1
+000065r 1  A9 76            @v0: lda #'v'
+000067r 1  20 rr rr         @v1: jsr console_write_byte
+00006Ar 1  A9 2D            lda #'-'
+00006Cr 1  20 rr rr         jsr console_write_byte
+00006Fr 1  A5 rr            lda tmp1
+000071r 1  29 10            and #$10
+000073r 1  F0 04            beq @b0
+000075r 1  A9 42            lda #'B'
+000077r 1  80 02            bra @b1
+000079r 1  A9 62            @b0: lda #'b'
+00007Br 1  20 rr rr         @b1: jsr console_write_byte
+00007Er 1  A5 rr            lda tmp1
+000080r 1  29 08            and #$08
+000082r 1  F0 04            beq @d0
+000084r 1  A9 44            lda #'D'
+000086r 1  80 02            bra @d1
+000088r 1  A9 64            @d0: lda #'d'
+00008Ar 1  20 rr rr         @d1: jsr console_write_byte
+00008Dr 1  A5 rr            lda tmp1
+00008Fr 1  29 04            and #$04
+000091r 1  F0 04            beq @i0
+000093r 1  A9 49            lda #'I'
+000095r 1  80 02            bra @i1
+000097r 1  A9 69            @i0: lda #'i'
+000099r 1  20 rr rr         @i1: jsr console_write_byte
+00009Cr 1  A5 rr            lda tmp1
+00009Er 1  29 02            and #$02
+0000A0r 1  F0 04            beq @z0
+0000A2r 1  A9 5A            lda #'Z'
+0000A4r 1  80 02            bra @z1
+0000A6r 1  A9 7A            @z0: lda #'z'
+0000A8r 1  20 rr rr         @z1: jsr console_write_byte
+0000ABr 1  A5 rr            lda tmp1
+0000ADr 1  29 01            and #$01
+0000AFr 1  F0 04            beq @c0
+0000B1r 1  A9 43            lda #'C'
+0000B3r 1  80 02            bra @c1
+0000B5r 1  A9 63            @c0: lda #'c'
+0000B7r 1  20 rr rr         @c1: jsr console_write_byte
+0000BAr 1  20 rr rr         jsr console_write_newline
+0000BDr 1               
+0000BDr 1  60               rts
+0000BEr 1               
+0000BEr 1               
+0000BEr 1               
+0000BEr 1               
+0000BEr 1               
+0000BEr 1                 jump_memory:
+0000BEr 1  A0 02              ldy #$02
+0000C0r 1  20 rr rr           jsr scan_hex16_offset
+0000C3r 1               
+0000C3r 1                   @print_address:
+0000C3r 1  A9 2A              lda #'*'
+0000C5r 1  20 rr rr           jsr console_write_byte
+0000C8r 1  A5 rr              lda ptr2 + 1
+0000CAr 1  20 rr rr           jsr console_write_hex
+0000CDr 1  A5 rr              lda ptr2
+0000CFr 1  20 rr rr           jsr console_write_hex
+0000D2r 1  20 rr rr           jsr console_write_newline
+0000D5r 1               
+0000D5r 1                   @jump:
+0000D5r 1  6C rr rr           jmp (ptr2)
+0000D8r 1               
+0000D8r 1               
+0000D8r 1               
+0000D8r 1               
+0000D8r 1               
+0000D8r 1                 write_memory:
+0000D8r 1  A0 02              ldy #$02
+0000DAr 1  20 rr rr           jsr scan_hex16_offset
+0000DDr 1               
+0000DDr 1                   @print_address:
+0000DDr 1  A5 rr              lda ptr2 + 1
+0000DFr 1  20 rr rr           jsr console_write_hex
+0000E2r 1  A5 rr              lda ptr2
+0000E4r 1  20 rr rr           jsr console_write_hex
+0000E7r 1  A9 3A              lda #':'
+0000E9r 1  20 rr rr           jsr console_write_byte
+0000ECr 1               
+0000ECr 1                   @read_and_print_byte:
+0000ECr 1  A0 07              ldy #$07
+0000EEr 1  20 rr rr           jsr scan_hex_offset
+0000F1r 1  20 rr rr           jsr console_write_hex
+0000F4r 1  20 rr rr           jsr console_write_newline
+0000F7r 1               
+0000F7r 1                   @store_value:
+0000F7r 1  A0 00              ldy #0
+0000F9r 1  91 rr              sta (ptr2),y
+0000FBr 1  60                 rts
+0000FCr 1               
+0000FCr 1               
+0000FCr 1               
+0000FCr 1               
+0000FCr 1                 dump_memory:
+0000FCr 1  20 rr rr           jsr str_length
+0000FFr 1  C9 07              cmp #$07
+000101r 1  30 18              bmi @no_length
+000103r 1  C9 08              cmp #$08
+000105r 1  F0 09              beq @one_digit_length
+000107r 1  A0 07              ldy #$07
+000109r 1  20 rr rr           jsr scan_hex_offset
+00010Cr 1  AA                 tax
+00010Dr 1  4C rr rr           jmp @start
+000110r 1               
+000110r 1                   @one_digit_length:
+000110r 1  A0 07              ldy #$07
+000112r 1  B1 rr              lda (ptr1),y
+000114r 1  20 rr rr           jsr scan_hex_char
+000117r 1  AA                 tax
+000118r 1  4C rr rr           jmp @start
+00011Br 1               
+00011Br 1                   @no_length:
+00011Br 1  A2 01              ldx #$01
+00011Dr 1               
+00011Dr 1                   @start:
+00011Dr 1  A0 02              ldy #$02
+00011Fr 1  20 rr rr           jsr scan_hex16_offset
+000122r 1               
+000122r 1                   @print_address:
+000122r 1  A5 rr              lda ptr2 + 1
+000124r 1  20 rr rr           jsr console_write_hex
+000127r 1  A5 rr              lda ptr2
+000129r 1  20 rr rr           jsr console_write_hex
+00012Cr 1  A9 20              lda #' '
+00012Er 1  20 rr rr           jsr console_write_byte
+000131r 1  20 rr rr           jsr console_write_byte
+000134r 1               
+000134r 1                   @print_bytes:
+000134r 1  A0 00              ldy #0
+000136r 1                   @next_byte:
+000136r 1  B1 rr              lda (ptr2),y
+000138r 1  20 rr rr           jsr console_write_hex
+00013Br 1               
+00013Br 1  A9 20              lda #' '
+00013Dr 1  20 rr rr           jsr console_write_byte
+000140r 1  C0 07              cpy #7
+000142r 1  D0 03              bne @skip_mid_sep
+000144r 1  20 rr rr           jsr console_write_byte
+000147r 1                   @skip_mid_sep:
+000147r 1  C8                 iny
+000148r 1  C0 10              cpy #16
+00014Ar 1  D0 EA              bne @next_byte
+00014Cr 1               
+00014Cr 1                   @print_chars:
+00014Cr 1  A9 20              lda #' '
+00014Er 1  20 rr rr           jsr console_write_byte
+000151r 1  20 rr rr           jsr console_write_byte
+000154r 1  A9 7C              lda #'|'
+000156r 1  20 rr rr           jsr console_write_byte
+000159r 1  A0 00              ldy #0
+00015Br 1                   @next_char:
+00015Br 1  B1 rr              lda (ptr2),y
+00015Dr 1  C9 20              cmp #$20
+00015Fr 1  90 07              bcc @non_printable
+000161r 1  C9 7E              cmp #$7e
+000163r 1  B0 03              bcs @non_printable
+000165r 1  4C rr rr           jmp @printable
+000168r 1                   @non_printable:
+000168r 1  A9 2E              lda #'.'
+00016Ar 1                   @printable:
+00016Ar 1  20 rr rr           jsr console_write_byte
+00016Dr 1  C8                 iny
+00016Er 1  C0 10              cpy #16
+000170r 1  D0 E9              bne @next_char
+000172r 1  A9 7C              lda #'|'
+000174r 1  20 rr rr           jsr console_write_byte
+000177r 1  20 rr rr           jsr console_write_newline
+00017Ar 1               
+00017Ar 1  CA                 dex
+00017Br 1  08                 php
+00017Cr 1  48                 pha
+00017Dr 1  18                 clc
+00017Er 1  A5 rr              lda ptr2
+000180r 1  69 10              adc #16
+000182r 1  85 rr              sta ptr2
+000184r 1  A5 rr              lda ptr2+1
+000186r 1  69 00              adc #$00
+000188r 1  85 rr              sta ptr2+1
+00018Ar 1  68                 pla
+00018Br 1  28                 plp
+00018Cr 1  E0 00              cpx #0
+00018Er 1  D0 92              bne @print_address
+000190r 1               
+000190r 1  60                 rts
+000191r 1               
+000191r 1               
+000191r 1                 ; Convert the hex character in the accu to its integer value
+000191r 1                 ; The integer value is returned in the accu
+000191r 1                 scan_hex_char:
+000191r 1  C9 30              cmp #'0'
+000193r 1  90 20              bcc @invalid
+000195r 1  C9 3A              cmp #('9' + 1)
+000197r 1  B0 04              bcs @no_digit
+000199r 1  38                 sec
+00019Ar 1  E9 30              sbc #'0'
+00019Cr 1  60                 rts
+00019Dr 1                   @no_digit:
+00019Dr 1  C9 41              cmp #'A'
+00019Fr 1  90 14              bcc @invalid
+0001A1r 1  C9 47              cmp #('F' + 1)
+0001A3r 1  B0 04              bcs @no_upper_hex
+0001A5r 1  38                 sec
+0001A6r 1  E9 37              sbc #('A' - 10)
+0001A8r 1  60                 rts
+0001A9r 1                   @no_upper_hex:
+0001A9r 1  C9 61              cmp #'a'
+0001ABr 1  90 08              bcc @invalid
+0001ADr 1  C9 67              cmp #('f' + 1)
+0001AFr 1  B0 04              bcs @invalid
+0001B1r 1  38                 sec
+0001B2r 1  E9 57              sbc #('a' - 10)
+0001B4r 1  60                 rts
+0001B5r 1                   @invalid:
+0001B5r 1  A9 00              lda #0
+0001B7r 1  60                 rts
+0001B8r 1               
+0001B8r 1                 ; Convert two hex characters starting at (R0) into an integer value
+0001B8r 1                 ; The integer value is returned in the accu
+0001B8r 1                 scan_hex:
+0001B8r 1  A0 00              ldy #$00
+0001BAr 1               
+0001BAr 1                 scan_hex_offset:
+0001BAr 1                     ;tya
+0001BAr 1                     ;pha
+0001BAr 1                     ;ldy #0
+0001BAr 1  B1 rr              lda (ptr1),y
+0001BCr 1  20 rr rr           jsr scan_hex_char
+0001BFr 1  0A                 asl
+0001C0r 1  0A                 asl
+0001C1r 1  0A                 asl
+0001C2r 1  0A                 asl
+0001C3r 1  85 rr              sta tmp1
+0001C5r 1  C8                 iny
+0001C6r 1  B1 rr              lda (ptr1),y
+0001C8r 1  20 rr rr           jsr scan_hex_char
+0001CBr 1  05 rr              ora tmp1
+0001CDr 1  85 rr              sta tmp1
+0001CFr 1                     ;pla
+0001CFr 1                     ;tay
+0001CFr 1  A5 rr              lda tmp1
+0001D1r 1  60                 rts
+0001D2r 1               
+0001D2r 1                 ; Convert four hex characters starting at (R0) into an integer value
+0001D2r 1                 ; The integer value is returned in RES..RES+1
+0001D2r 1                 scan_hex16:
+0001D2r 1  A0 00            ldy #$00
+0001D4r 1               
+0001D4r 1                 scan_hex16_offset:
+0001D4r 1  48               pha
+0001D5r 1  5A               phy
+0001D6r 1                   ;ldy #0
+0001D6r 1  B1 rr            lda (ptr1),y
+0001D8r 1  20 rr rr         jsr scan_hex_char
+0001DBr 1  0A               asl
+0001DCr 1  0A               asl
+0001DDr 1  0A               asl
+0001DEr 1  0A               asl
+0001DFr 1  85 rr            sta ptr2 + 1
+0001E1r 1  C8               iny
+0001E2r 1  B1 rr            lda (ptr1),y
+0001E4r 1  20 rr rr         jsr scan_hex_char
+0001E7r 1  05 rr            ora ptr2 + 1
+0001E9r 1  85 rr            sta ptr2 + 1
+0001EBr 1  C8               iny
+0001ECr 1  B1 rr            lda (ptr1),y
+0001EEr 1  20 rr rr         jsr scan_hex_char
+0001F1r 1  0A               asl
+0001F2r 1  0A               asl
+0001F3r 1  0A               asl
+0001F4r 1  0A               asl
+0001F5r 1  85 rr            sta ptr2
+0001F7r 1  C8               iny
+0001F8r 1  B1 rr            lda (ptr1),y
+0001FAr 1  20 rr rr         jsr scan_hex_char
+0001FDr 1  05 rr            ora ptr2
+0001FFr 1  85 rr            sta ptr2
+000201r 1  7A               ply
+000202r 1  68               pla
+000203r 1  60               rts
+000203r 1               

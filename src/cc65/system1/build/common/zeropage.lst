@@ -1,0 +1,143 @@
+ca65 V2.19 - Git cc3c40c
+Main file   : ../common/source/zeropage.s
+Current file: ../common/source/zeropage.s
+
+000000r 1               .include "zeropage.inc"
+000000r 2               
+000000r 2               .ifndef ZEROPAGE_INC
+000000r 2               ZEROPAGE_INC = 1
+000000r 2               
+000000r 2               
+000000r 2               .globalzp sp
+000000r 2               .globalzp sreg
+000000r 2               .globalzp regsave
+000000r 2               
+000000r 2               .globalzp tmp1
+000000r 2               .globalzp tmp2
+000000r 2               .globalzp tmp3
+000000r 2               .globalzp tmp4
+000000r 2               .globalzp tmp5
+000000r 2               .globalzp ptr1
+000000r 2               .globalzp ptr2
+000000r 2               .globalzp ptr3
+000000r 2               .globalzp ptr4
+000000r 2               
+000000r 2               .globalzp console_out_ptr
+000000r 2               .globalzp lcd_out_ptr
+000000r 2               .globalzp ra8875_out_ptr
+000000r 2               
+000000r 2               .globalzp zp_sd_address
+000000r 2               .globalzp zp_sd_currentsector
+000000r 2               .globalzp fat32_fatstart
+000000r 2               .globalzp fat32_datastart
+000000r 2               .globalzp fat32_rootcluster
+000000r 2               .globalzp fat32_sectorspercluster
+000000r 2               .globalzp fat32_pendingsectors
+000000r 2               .globalzp fat32_address
+000000r 2               .globalzp fat32_nextcluster
+000000r 2               .globalzp fat32_bytesremaining
+000000r 2               .globalzp fat32_errorstage
+000000r 2               .globalzp fat32_filenamepointer
+000000r 2               
+000000r 2               
+000000r 2               .globalzp DPL
+000000r 2               .globalzp DPH
+000000r 2               
+000000r 2               .globalzp lcd_enable_pins
+000000r 2               .globalzp lcd_row
+000000r 2               .globalzp lcd_column
+000000r 2               
+000000r 2               .globalzp controller1
+000000r 2               .globalzp controller2
+000000r 2               
+000000r 2               .globalzp spi_sr
+000000r 2               .globalzp read_blkptr, write_blkptr
+000000r 2               .globalzp sd_tmp
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               lba_addr 		= $0280		; 4 bytes
+000000r 2               blocks			= $0284		; 3 bytes blocks to read, 3 bytes sufficient to address 4GB -> 4294967296 >> 9 = 8388608 ($800000) max blocks/file
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; last known timestamp with date set to 1970-01-01
+000000r 2               rtc_systime_t = $0300
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; time struct with date set to 1970-01-01
+000000r 2               .struct time_t
+000000r 2               		  tm_sec	.byte		;0-59
+000000r 2               		  tm_min	.byte		;0-59
+000000r 2               		  tm_hour	.byte		;0-23
+000000r 2               		  tm_wday	.byte		;
+000000r 2               		  tm_mday	.byte		;1-31
+000000r 2               		  tm_mon	.byte	;1	;0-11 0-jan, 11-dec
+000000r 2               		  tm_year	.byte  ;70	;years since 1900
+000000r 2               .endstruct
+000000r 2               
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               
+000000r 1               .zeropage
+000000r 1               
+000000r 1               ;??
+000000r 1               ; [$00-$13] reserved for cc65 runtime library
+000000r 1               ;           (but could be used by machine code programs)
+000000r 1               ;??
+000000r 1  xx xx        sp:          .res 2
+000002r 1  xx xx        sreg:        .res 2
+000004r 1  xx xx xx xx  regsave:     .res 4
+000008r 1               
+000008r 1  xx xx        ptr1:        .res 2
+00000Ar 1  xx xx        ptr2:        .res 2
+00000Cr 1  xx xx        ptr3:        .res 2
+00000Er 1  xx xx        ptr4:        .res 2
+000010r 1  xx           tmp1:        .res 1
+000011r 1  xx           tmp2:        .res 1
+000012r 1  xx           tmp3:        .res 1
+000013r 1  xx           tmp4:        .res 1
+000014r 1               ;tmp5:        .res 1
+000014r 1               
+000014r 1  xx xx        console_out_ptr: .res 2
+000016r 1  xx xx        lcd_out_ptr: .res 2
+000018r 1  xx xx        ra8875_out_ptr: .res 2
+00001Ar 1               
+00001Ar 1  xx xx        zp_sd_address:           .res 2  ; 2 bytes
+00001Cr 1  xx xx xx xx  zp_sd_currentsector:     .res 4  ; 4 bytes
+000020r 1  xx xx xx xx  fat32_fatstart:          .res 4  ; 4 bytes
+000024r 1  xx xx xx xx  fat32_datastart:         .res 4  ; 4 bytes
+000028r 1  xx xx xx xx  fat32_rootcluster:       .res 4  ; 4 bytes
+00002Cr 1  xx           fat32_sectorspercluster: .res 1  ; 1 byte
+00002Dr 1  xx           fat32_pendingsectors:    .res 1  ; 1 byte
+00002Er 1  xx xx        fat32_address:           .res 2  ; 2 bytes
+000030r 1  xx xx xx xx  fat32_nextcluster:       .res 4  ; 4 bytes
+000034r 1  xx xx xx xx  fat32_bytesremaining:    .res 4  ; 4 bytes
+000038r 1               fat32_errorstage = fat32_bytesremaining
+000038r 1               fat32_filenamepointer = fat32_bytesremaining
+000038r 1               
+000038r 1               
+000038r 1  xx           DPL: .res 1
+000039r 1  xx           DPH: .res 1
+00003Ar 1               
+00003Ar 1  xx           lcd_enable_pins:  .res 1
+00003Br 1  xx           lcd_row:          .res 1
+00003Cr 1  xx           lcd_column:       .res 1
+00003Dr 1               
+00003Dr 1  xx xx xx     controller1: .res 3
+000040r 1  xx xx xx     controller2: .res 3
+000043r 1               
+000043r 1               
+000043r 1               
+000043r 1               ; SDCARD/storage block pointer
+000043r 1  xx xx        read_blkptr: .res 2 ;  	= $f4
+000045r 1  xx xx        write_blkptr: .res 2 ; 	= $f6
+000047r 1  xx           sd_tmp: .res 1 ;		= $f8
+000048r 1               
+000048r 1               ; spi shift register location
+000048r 1  xx           spi_sr: .res 1;      = $f9
+000048r 1               

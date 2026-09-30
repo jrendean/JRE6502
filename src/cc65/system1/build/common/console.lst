@@ -1,0 +1,578 @@
+ca65 V2.19 - Git cc3c40c
+Main file   : ../common/source/console.s
+Current file: ../common/source/console.s
+
+000000r 1               .include "io.inc"
+000000r 2               
+000000r 2               .ifndef IO_INC
+000000r 2               IO_INC = 1
+000000r 2               
+000000r 2               ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/io.inc65
+000000r 2               ;https://github.com/peternoyes/dodo/tree/master/src
+000000r 2               
+000000r 2               .import __VIA1_START__
+000000r 2               .import __VIA2_START__
+000000r 2               .import __ACIA1_START__
+000000r 2               
+000000r 2               VIA1_PORTB = __VIA1_START__ + 0
+000000r 2               VIA1_PORTA = __VIA1_START__ + 1
+000000r 2               VIA1_DDRB  = __VIA1_START__ + 2
+000000r 2               VIA1_DDRA  = __VIA1_START__ + 3
+000000r 2               VIA1_T1CL  = __VIA1_START__ + 4
+000000r 2               VIA1_T1CH  = __VIA1_START__ + 5
+000000r 2               VIA1_T1LL  = __VIA1_START__ + 6
+000000r 2               VIA1_T1LH  = __VIA1_START__ + 7
+000000r 2               VIA1_T2CL  = __VIA1_START__ + 8
+000000r 2               VIA1_T2CH  = __VIA1_START__ + 9
+000000r 2               VIA1_SR    = __VIA1_START__ + 10
+000000r 2               VIA1_ACR   = __VIA1_START__ + 11
+000000r 2               VIA1_PCR   = __VIA1_START__ + 12
+000000r 2               VIA1_IFR   = __VIA1_START__ + 13
+000000r 2               VIA1_IER   = __VIA1_START__ + 14
+000000r 2               VIA1_PANH  = __VIA1_START__ + 15
+000000r 2               
+000000r 2               VIA2_PORTB = __VIA2_START__ + 0
+000000r 2               VIA2_PORTA = __VIA2_START__ + 1
+000000r 2               VIA2_DDRB  = __VIA2_START__ + 2
+000000r 2               VIA2_DDRA  = __VIA2_START__ + 3
+000000r 2               VIA2_T1CL  = __VIA2_START__ + 4
+000000r 2               VIA2_T1CH  = __VIA2_START__ + 5
+000000r 2               VIA2_T1LL  = __VIA2_START__ + 6
+000000r 2               VIA2_T1LH  = __VIA2_START__ + 7
+000000r 2               VIA2_T2CL  = __VIA2_START__ + 8
+000000r 2               VIA2_T2CH  = __VIA2_START__ + 9
+000000r 2               VIA2_SR    = __VIA2_START__ + 10
+000000r 2               VIA2_ACR   = __VIA2_START__ + 11
+000000r 2               VIA2_PCR   = __VIA2_START__ + 12
+000000r 2               VIA2_IFR   = __VIA2_START__ + 13
+000000r 2               VIA2_IER   = __VIA2_START__ + 14
+000000r 2               VIA2_PANH  = __VIA2_START__ + 15
+000000r 2               
+000000r 2               ; Port bits
+000000r 2               VIA_P0 = 1 << 0
+000000r 2               VIA_P1 = 1 << 1
+000000r 2               VIA_P2 = 1 << 2
+000000r 2               VIA_P3 = 1 << 3
+000000r 2               VIA_P4 = 1 << 4
+000000r 2               VIA_P5 = 1 << 5
+000000r 2               VIA_P6 = 1 << 6
+000000r 2               VIA_P7 = 1 << 7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; LED Ports and Pins
+000000r 2               ;
+000000r 2               LED_PORT  = VIA2_PORTA
+000000r 2               PIN_LED = VIA_P0
+000000r 2               
+000000r 2               ;
+000000r 2               ; LCD Port and Pins
+000000r 2               ;
+000000r 2               .if lcd_type=20
+000000r 2                 ; built in 20x4
+000000r 2                 LCD_DDR  = VIA2_DDRA
+000000r 2                 LCD_PORT = VIA2_PORTA
+000000r 2               .elseif lcd_type=40
+000000r 2                 ; test 40x4
+000000r 2                 LCD_DDR  = VIA1_DDRA
+000000r 2                 LCD_PORT = VIA1_PORTA
+000000r 2               .endif
+000000r 2               
+000000r 2               LCD_E2 = VIA_P0
+000000r 2               LCD_RS = VIA_P1
+000000r 2               LCD_RW = VIA_P2
+000000r 2               LCD_E1 = VIA_P3
+000000r 2               LCD_D4 = VIA_P4
+000000r 2               LCD_D5 = VIA_P5
+000000r 2               LCD_D6 = VIA_P6
+000000r 2               LCD_D7 = VIA_P7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; PS/2 Ports and Pins
+000000r 2               ;
+000000r 2               PS2_PORT = VIA2_PORTA
+000000r 2               PS2_DDR  = VIA2_DDRA
+000000r 2               
+000000r 2               PS2_CLK  = VIA_P6
+000000r 2               PS2_DATA = VIA_P7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; SPI Ports and Pins
+000000r 2               ;
+000000r 2               SPI_PORT = VIA2_PORTB
+000000r 2               SPI_DDR  = VIA2_DDRB
+000000r 2               SPI_SR   = VIA2_SR
+000000r 2               SPI_ACR  = VIA2_ACR
+000000r 2               
+000000r 2               spi_device_sdcard	  = %00011100 ;spi device number 1110??? (SPI_SS1)
+000000r 2               spi_device_ra8875   = %00011010 ;spi device number 1101??? (SPI_SS2)
+000000r 2               spi_device_rtc	  	= %00010110 ;spi device number 1011??? (SPI_SS3)
+000000r 2               spi_device_deselect = %00011110 ; deselect any device
+000000r 2               SDCARD_DETECT			= VIA_P6
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; SNES Ports and Pins
+000000r 2               ;
+000000r 2               SNES_PORT = VIA2_PORTA
+000000r 2               SNES_DDR  = VIA2_DDRA
+000000r 2               
+000000r 2               SNES_CLK   = VIA_P1
+000000r 2               SNES_LATCH = VIA_P2
+000000r 2               SNES_DATA1 = VIA_P3
+000000r 2               SNES_DATA2 = VIA_P4
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               ACIA1_DATA    = __ACIA1_START__ + $00
+000000r 2               ACIA1_STATUS  = __ACIA1_START__ + $01
+000000r 2               ACIA1_COMMAND = __ACIA1_START__ + $02
+000000r 2               ACIA1_CONTROL = __ACIA1_START__ + $03
+000000r 2               
+000000r 2               ; ACIA control register bit values
+000000r 2               ACIA_STOP_BITS_1 = %00000000
+000000r 2               ACIA_STOP_BITS_2 = %10000000
+000000r 2               ACIA_DATA_BITS_8 = %00000000
+000000r 2               ACIA_DATA_BITS_7 = %00100000
+000000r 2               ACIA_DATA_BITS_6 = %01000000
+000000r 2               ACIA_DATA_BITS_5 = %01100000
+000000r 2               ACIA_CLOCK_EXT   = %00000000
+000000r 2               ACIA_CLOCK_INT   = %00010000
+000000r 2               ACIA_BAUD_16XEXT = %00000000
+000000r 2               ACIA_BAUD_50     = %00000001
+000000r 2               ACIA_BAUD_75     = %00000010
+000000r 2               ACIA_BAUD_109    = %00000011
+000000r 2               ACIA_BAUD_134    = %00000100
+000000r 2               ACIA_BAUD_150    = %00000101
+000000r 2               ACIA_BAUD_300    = %00000110
+000000r 2               ACIA_BAUD_600    = %00000111
+000000r 2               ACIA_BAUD_1200   = %00001000
+000000r 2               ACIA_BAUD_1800   = %00001001
+000000r 2               ACIA_BAUD_2400   = %00001010
+000000r 2               ACIA_BAUD_3600   = %00001011
+000000r 2               ACIA_BAUD_4800   = %00001100
+000000r 2               ACIA_BAUD_7200   = %00001101
+000000r 2               ACIA_BAUD_9600   = %00001110
+000000r 2               ACIA_BAUD_19200  = %00001111
+000000r 2               
+000000r 2               ; ACIA command register bit values
+000000r 2               ACIA_PARITY_ODD              = %00000000
+000000r 2               ACIA_PARITY_EVEN             = %01000000
+000000r 2               ACIA_PARITY_MARK             = %10000000
+000000r 2               ACIA_PARITY_SPACE            = %11000000
+000000r 2               ACIA_PARITY_DISABLE          = %00000000
+000000r 2               ACIA_PARITY_ENABLE           = %00100000
+000000r 2               ACIA_ECHO_DISABLE            = %00000000
+000000r 2               ACIA_ECHO_ENABLE             = %00010000
+000000r 2               ACIA_TX_INT_DISABLE_RTS_HIGH = %00000000
+000000r 2               ACIA_TX_INT_ENABLE_RTS_LOW   = %00000100
+000000r 2               ACIA_TX_INT_DISABLE_RTS_LOW  = %00001000
+000000r 2               ACIA_TX_INT_DISABLE_BREAK    = %00001100
+000000r 2               ACIA_RX_INT_ENABLE           = %00000000
+000000r 2               ACIA_RX_INT_DISABLE          = %00000010
+000000r 2               ACIA_DTR_HIGH                = %00000000
+000000r 2               ACIA_DTR_LOW                 = %00000001
+000000r 2               
+000000r 2               ; ACIA status register bit masks
+000000r 2               ACIA_STATUS_IRQ        = 1 << 7
+000000r 2               ACIA_STATUS_DSR        = 1 << 6
+000000r 2               ACIA_STATUS_DCD        = 1 << 5
+000000r 2               ACIA_STATUS_TX_EMPTY   = 1 << 4
+000000r 2               ACIA_STATUS_RX_FULL    = 1 << 3
+000000r 2               ACIA_STATUS_OVERRUN    = 1 << 2
+000000r 2               ACIA_STATUS_FRAME_ERR  = 1 << 1
+000000r 2               ACIA_STATUS_PARITY_ERR = 1 << 0
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               .include "zeropage.inc"
+000000r 2               
+000000r 2               .ifndef ZEROPAGE_INC
+000000r 2               ZEROPAGE_INC = 1
+000000r 2               
+000000r 2               
+000000r 2               .globalzp sp
+000000r 2               .globalzp sreg
+000000r 2               .globalzp regsave
+000000r 2               
+000000r 2               .globalzp tmp1
+000000r 2               .globalzp tmp2
+000000r 2               .globalzp tmp3
+000000r 2               .globalzp tmp4
+000000r 2               .globalzp tmp5
+000000r 2               .globalzp ptr1
+000000r 2               .globalzp ptr2
+000000r 2               .globalzp ptr3
+000000r 2               .globalzp ptr4
+000000r 2               
+000000r 2               .globalzp console_out_ptr
+000000r 2               .globalzp lcd_out_ptr
+000000r 2               .globalzp ra8875_out_ptr
+000000r 2               
+000000r 2               .globalzp zp_sd_address
+000000r 2               .globalzp zp_sd_currentsector
+000000r 2               .globalzp fat32_fatstart
+000000r 2               .globalzp fat32_datastart
+000000r 2               .globalzp fat32_rootcluster
+000000r 2               .globalzp fat32_sectorspercluster
+000000r 2               .globalzp fat32_pendingsectors
+000000r 2               .globalzp fat32_address
+000000r 2               .globalzp fat32_nextcluster
+000000r 2               .globalzp fat32_bytesremaining
+000000r 2               .globalzp fat32_errorstage
+000000r 2               .globalzp fat32_filenamepointer
+000000r 2               
+000000r 2               
+000000r 2               .globalzp DPL
+000000r 2               .globalzp DPH
+000000r 2               
+000000r 2               .globalzp lcd_enable_pins
+000000r 2               .globalzp lcd_row
+000000r 2               .globalzp lcd_column
+000000r 2               
+000000r 2               .globalzp controller1
+000000r 2               .globalzp controller2
+000000r 2               
+000000r 2               .globalzp spi_sr
+000000r 2               .globalzp read_blkptr, write_blkptr
+000000r 2               .globalzp sd_tmp
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               lba_addr 		= $0280		; 4 bytes
+000000r 2               blocks			= $0284		; 3 bytes blocks to read, 3 bytes sufficient to address 4GB -> 4294967296 >> 9 = 8388608 ($800000) max blocks/file
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; last known timestamp with date set to 1970-01-01
+000000r 2               rtc_systime_t = $0300
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; time struct with date set to 1970-01-01
+000000r 2               .struct time_t
+000000r 2               		  tm_sec	.byte		;0-59
+000000r 2               		  tm_min	.byte		;0-59
+000000r 2               		  tm_hour	.byte		;0-23
+000000r 2               		  tm_wday	.byte		;
+000000r 2               		  tm_mday	.byte		;1-31
+000000r 2               		  tm_mon	.byte	;1	;0-11 0-jan, 11-dec
+000000r 2               		  tm_year	.byte  ;70	;years since 1900
+000000r 2               .endstruct
+000000r 2               
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               
+000000r 1               .import delay_ms, convert_to_hex
+000000r 1               
+000000r 1               .export console_init, console_is_data_available
+000000r 1               .export console_write_string, console_write_byte, console_write_hex, console_write_newline
+000000r 1               .export console_read_byte, console_read_string
+000000r 1               .export primm_console
+000000r 1               
+000000r 1               .export b2ad, b2ad2, dpb2ad
+000000r 1               
+000000r 1               .code
+000000r 1               
+000000r 1                 ;
+000000r 1                 ; IN:
+000000r 1                 ; OUT:
+000000r 1                 ; ZP:
+000000r 1                 console_init:
+000000r 1  48               pha             ; save A
+000001r 1  A9 1B            lda #(ACIA_PARITY_DISABLE | ACIA_ECHO_ENABLE | ACIA_TX_INT_DISABLE_RTS_LOW | ACIA_RX_INT_DISABLE | ACIA_DTR_LOW)
+000003r 1  8D rr rr         sta ACIA1_COMMAND     ; write the commands to the ACIA Command register
+000006r 1  A9 1F            lda #(ACIA_STOP_BITS_1 | ACIA_DATA_BITS_8 | ACIA_CLOCK_INT | ACIA_BAUD_19200)
+000008r 1  8D rr rr         sta ACIA1_CONTROL     ; write the commands to the ACIA Control register
+00000Br 1  68               pla             ; restore A
+00000Cr 1  60               rts             ; return
+00000Dr 1               
+00000Dr 1                 ;
+00000Dr 1                 ; IN:
+00000Dr 1                 ; OUT:
+00000Dr 1                 ; ZP:
+00000Dr 1                 console_is_data_available:
+00000Dr 1  48               pha
+00000Er 1  AD rr rr         lda ACIA1_STATUS     ; load the ACIA Status register in to A
+000011r 1  29 08            and #ACIA_STATUS_RX_FULL ; and with the bits for a fill receive register
+000013r 1  F0 03            beq @no
+000015r 1  38               sec
+000016r 1  68               pla
+000017r 1  60               rts
+000018r 1                 @no:
+000018r 1  18               clc
+000019r 1  68               pla
+00001Ar 1  60               rts
+00001Br 1               
+00001Br 1                 ;
+00001Br 1                 ; IN:
+00001Br 1                 ; OUT:
+00001Br 1                 ; ZP:
+00001Br 1                 console_write_string:
+00001Br 1  48               pha             ; save A
+00001Cr 1  5A               phy             ; save Y
+00001Dr 1  A0 00            ldy #0          ; initialize loop variable Y
+00001Fr 1                 @write_loop:
+00001Fr 1  B1 rr            lda (console_out_ptr), y  ; load byte from pointer in to A
+000021r 1  F0 07            beq @done         ; if the byte == 0 then branch to @done
+000023r 1  20 rr rr         jsr console_write_byte
+000026r 1  C8               iny             ; increment Y
+000027r 1  4C rr rr         jmp @write_loop       ; jmp to the begining of loop to get next byte
+00002Ar 1                 @done:
+00002Ar 1  7A               ply             ; restore Y
+00002Br 1  68               pla             ; restore A
+00002Cr 1  60               rts             ; return
+00002Dr 1               
+00002Dr 1               
+00002Dr 1                 ;
+00002Dr 1                 ; IN:
+00002Dr 1                 ; OUT:
+00002Dr 1                 ; ZP:
+00002Dr 1                 console_write_byte:
+00002Dr 1  48               pha             ; save A
+00002Er 1                 @wait_tx_empty:
+00002Er 1  AD rr rr         lda ACIA1_STATUS      ; load the ACIA Status register in to A
+000031r 1  29 10            and #ACIA_STATUS_TX_EMPTY ; and with the bits for an empty transmit register
+000033r 1  F0 F9            beq @wait_tx_empty    ; if the contents of A == 0 branch to _console_write_char
+000035r 1  68               pla             ; restore A
+000036r 1  8D rr rr         sta ACIA1_DATA      ; write A to ACIA Data register
+000039r 1                   ;;pha
+000039r 1                   ;;WDC 65C51 delay bug fix
+000039r 1                   ;lda #1
+000039r 1                   ;jsr delay_ms
+000039r 1                   ;;pla
+000039r 1  60               rts             ; return
+00003Ar 1               
+00003Ar 1               
+00003Ar 1                 ;
+00003Ar 1                 ; IN:
+00003Ar 1                 ; OUT:
+00003Ar 1                 ; ZP:
+00003Ar 1                 console_write_hex:
+00003Ar 1  48               pha
+00003Br 1  DA               phx
+00003Cr 1  5A               phy
+00003Dr 1  20 rr rr         jsr convert_to_hex
+000040r 1  8A               txa
+000041r 1  20 rr rr         jsr console_write_byte
+000044r 1  98               tya
+000045r 1  20 rr rr         jsr console_write_byte
+000048r 1  7A               ply
+000049r 1  FA               plx
+00004Ar 1  68               pla
+00004Br 1  60               rts
+00004Cr 1               
+00004Cr 1                 ;
+00004Cr 1                 ; IN:
+00004Cr 1                 ; OUT:
+00004Cr 1                 ; ZP: tmp1, ptr1
+00004Cr 1                 console_read_string:
+00004Cr 1  48               pha
+00004Dr 1  5A               phy
+00004Er 1               
+00004Er 1  85 rr            sta tmp1  ; max buffer length
+000050r 1               
+000050r 1  A9 00            lda #$00
+000052r 1  A0 00            ldy #$00
+000054r 1                 @clean_buffer:
+000054r 1  91 rr            sta (ptr1),y
+000056r 1  C8               iny
+000057r 1  C4 rr            cpy tmp1
+000059r 1  D0 F9            bne @clean_buffer
+00005Br 1               
+00005Br 1  A0 00            ldy #$00
+00005Dr 1                 @get_char:
+00005Dr 1  20 rr rr         jsr console_read_byte
+000060r 1  C9 0D            cmp #$0D
+000062r 1  F0 28            beq @done
+000064r 1               
+000064r 1  C9 08            cmp #$08       ; backspace
+000066r 1  F0 14            beq @backspace
+000068r 1  C9 20            cmp #$20       ; special chars 0-31, ignore
+00006Ar 1  30 F1            bmi @get_char
+00006Cr 1  C9 7E            cmp #$7E       ; special chars 127-255, ignore
+00006Er 1  10 ED            bpl @get_char
+000070r 1               
+000070r 1  C4 rr            cpy tmp1
+000072r 1  F0 18            beq @done   ; hit the max buffer size, we are done regardless of more data
+000074r 1                   ;beq @get_char
+000074r 1               
+000074r 1  20 rr rr         jsr console_write_byte ; echo back to terminal
+000077r 1               
+000077r 1  91 rr            sta (ptr1), y
+000079r 1  C8               iny
+00007Ar 1  80 E1            bra @get_char
+00007Cr 1               
+00007Cr 1                 @backspace:
+00007Cr 1  C0 00            cpy #$00
+00007Er 1  F0 DD            beq @get_char
+000080r 1  88               dey
+000081r 1  A9 00            lda #$00
+000083r 1  91 rr            sta (ptr1), y
+000085r 1  A9 08            lda #$08
+000087r 1  20 rr rr         jsr console_write_byte ; echo back to terminal
+00008Ar 1  80 D1            bra @get_char
+00008Cr 1               
+00008Cr 1                 @done:
+00008Cr 1  20 rr rr         jsr console_write_newline
+00008Fr 1               
+00008Fr 1  7A               ply
+000090r 1  68               pla
+000091r 1  60               rts
+000092r 1               
+000092r 1               
+000092r 1                 ;
+000092r 1                 ; IN:
+000092r 1                 ; OUT:
+000092r 1                 ; ZP:
+000092r 1                 console_read_byte:
+000092r 1  AD rr rr         lda ACIA1_STATUS     ; load the ACIA Status register in to A
+000095r 1  29 08            and #ACIA_STATUS_RX_FULL ; and with the bits for a fill receive register
+000097r 1  F0 F9            beq console_read_byte   ; if the contents of A == 0 then branch to _console_read_char
+000099r 1  AD rr rr         lda ACIA1_DATA       ; load the ACIA Data register in to A
+00009Cr 1  60               rts            ; return
+00009Dr 1               
+00009Dr 1               
+00009Dr 1                 console_write_newline:
+00009Dr 1  48               pha
+00009Er 1  A9 0D            lda #$0D
+0000A0r 1  20 rr rr         jsr console_write_byte
+0000A3r 1  A9 0A            lda #$0A
+0000A5r 1  20 rr rr         jsr console_write_byte
+0000A8r 1  68               pla
+0000A9r 1  60               rts
+0000AAr 1               
+0000AAr 1               
+0000AAr 1                 ; http://6502.org/source/io/primm.htm
+0000AAr 1                 primm_console:
+0000AAr 1  68               pla         ; get low part of (string address-1)
+0000ABr 1  85 rr            sta   DPL
+0000ADr 1  68               pla         ; get high part of (string address-1)
+0000AEr 1  85 rr            sta   DPH
+0000B0r 1  80 03            bra   @primm3
+0000B2r 1                 @primm2:
+0000B2r 1  20 rr rr         jsr   console_write_byte    ; output a string char
+0000B5r 1                 @primm3:
+0000B5r 1  E6 rr            inc   DPL     ; advance the string pointer
+0000B7r 1  D0 02            bne   @primm4
+0000B9r 1  E6 rr            inc   DPH
+0000BBr 1                 @primm4:
+0000BBr 1  B2 rr            lda   (DPL)     ; get string char
+0000BDr 1  D0 F3            bne   @primm2    ; output and continue if not NUL
+0000BFr 1  A5 rr            lda   DPH
+0000C1r 1  48               pha
+0000C2r 1  A5 rr            lda   DPL
+0000C4r 1  48               pha
+0000C5r 1  60               rts         ; proceed at code following the NUL
+0000C6r 1               
+0000C6r 1               
+0000C6r 1               
+0000C6r 1               
+0000C6r 1  DA           b2ad:		phx
+0000C7r 1  A2 00        			ldx #$00
+0000C9r 1  C9 0A        @c10:		cmp #10
+0000CBr 1  90 05        			bcc @out2
+0000CDr 1  E9 0A        			sbc #10
+0000CFr 1  E8           			inx
+0000D0r 1  80 F7        			bra @c10
+0000D2r 1  20 rr rr     @out2:		jsr putout
+0000D5r 1  18           			clc
+0000D6r 1  69 30        			adc #$30
+0000D8r 1  20 rr rr     			jsr console_write_byte
+0000DBr 1  FA           			plx
+0000DCr 1  60           			rts
+0000DDr 1               
+0000DDr 1  48           putout:		pha
+0000DEr 1  8A           			txa
+0000DFr 1  69 30        			adc #$30
+0000E1r 1  20 rr rr     			jsr console_write_byte
+0000E4r 1  68           			pla
+0000E5r 1  60           			rts
+0000E6r 1               
+0000E6r 1  DA           b2ad2:		phx
+0000E7r 1  A2 00        			ldx #$00
+0000E9r 1  C9 64        @c100:		cmp #100
+0000EBr 1  90 05        			bcc @out1
+0000EDr 1  E9 64        			sbc #100
+0000EFr 1  E8           			inx
+0000F0r 1  80 F7        			bra @c100
+0000F2r 1  20 rr rr     @out1:		jsr putout
+0000F5r 1  A2 00        			ldx #$00
+0000F7r 1  C9 0A        @c10:		cmp #10
+0000F9r 1  90 05        			bcc @out2
+0000FBr 1  E9 0A        			sbc #10
+0000FDr 1  E8           			inx
+0000FEr 1  80 F7        			bra @c10
+000100r 1  20 rr rr     @out2:		jsr putout
+000103r 1  18           			clc
+000104r 1  69 30        			adc #$30
+000106r 1  20 rr rr     			jsr console_write_byte
+000109r 1  FA           			plx
+00010Ar 1  60           			rts
+00010Br 1               
+00010Br 1               
+00010Br 1               dpb2ad:
+00010Br 1  85 rr        			sta tmp3
+00010Dr 1  86 rr        			stx tmp1
+00010Fr 1  A0 00        			ldy #$00
+000111r 1  84 rr        			sty tmp2
+000113r 1               nxtdig:
+000113r 1               
+000113r 1  A2 00        			ldx #$00
+000115r 1  A5 rr        subem:		lda tmp3
+000117r 1  38           			sec
+000118r 1  F9 rr rr     			sbc subtbl,y
+00011Br 1  85 rr        			sta tmp3
+00011Dr 1  A5 rr        			lda tmp1
+00011Fr 1  C8           			iny
+000120r 1  F9 rr rr     			sbc subtbl,y
+000123r 1  90 06        			bcc adback
+000125r 1  85 rr        			sta tmp1
+000127r 1  E8           			inx
+000128r 1  88           			dey
+000129r 1  80 EA        			bra subem
+00012Br 1               
+00012Br 1               adback:
+00012Br 1               
+00012Br 1  88           			dey
+00012Cr 1  A5 rr        			lda tmp3
+00012Er 1  79 rr rr     			adc subtbl,y
+000131r 1  85 rr        			sta tmp3
+000133r 1  8A           			txa
+000134r 1  D0 06        			bne setlzf
+000136r 1  24 rr        			bit tmp2
+000138r 1  30 06        			bmi cnvta
+00013Ar 1  10 0B        			bpl printspc
+00013Cr 1  A2 80        setlzf:		ldx #$80
+00013Er 1  86 rr        			stx tmp2
+000140r 1               
+000140r 1  09 30        cnvta:		ora #$30
+000142r 1  20 rr rr     			jsr console_write_byte
+000145r 1  80 05        			bra uptbl
+000147r 1               printspc:
+000147r 1  A9 20        			lda #' '
+000149r 1  20 rr rr     			jsr console_write_byte
+00014Cr 1               
+00014Cr 1  C8           uptbl:		iny
+00014Dr 1  C8           			iny
+00014Er 1  C0 08        			cpy #08
+000150r 1  90 C1        			bcc nxtdig
+000152r 1  A5 rr        			lda tmp3
+000154r 1  09 30        			ora #$30
+000156r 1               
+000156r 1               
+000156r 1  4C rr rr     			jmp console_write_byte
+000159r 1               ;			rts
+000159r 1               
+000159r 1               
+000159r 1  10 27        subtbl:		.word 10000
+00015Br 1  E8 03        			.word 1000
+00015Dr 1  64 00        			.word 100
+00015Fr 1  0A 00        			.word 10
+00015Fr 1               

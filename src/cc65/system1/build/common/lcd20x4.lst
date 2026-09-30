@@ -1,0 +1,658 @@
+ca65 V2.19 - Git cc3c40c
+Main file   : ../common/source/lcd20x4.s
+Current file: ../common/source/lcd20x4.s
+
+000000r 1               .include "io.inc"
+000000r 2               
+000000r 2               .ifndef IO_INC
+000000r 2               IO_INC = 1
+000000r 2               
+000000r 2               ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/io.inc65
+000000r 2               ;https://github.com/peternoyes/dodo/tree/master/src
+000000r 2               
+000000r 2               .import __VIA1_START__
+000000r 2               .import __VIA2_START__
+000000r 2               .import __ACIA1_START__
+000000r 2               
+000000r 2               VIA1_PORTB = __VIA1_START__ + 0
+000000r 2               VIA1_PORTA = __VIA1_START__ + 1
+000000r 2               VIA1_DDRB  = __VIA1_START__ + 2
+000000r 2               VIA1_DDRA  = __VIA1_START__ + 3
+000000r 2               VIA1_T1CL  = __VIA1_START__ + 4
+000000r 2               VIA1_T1CH  = __VIA1_START__ + 5
+000000r 2               VIA1_T1LL  = __VIA1_START__ + 6
+000000r 2               VIA1_T1LH  = __VIA1_START__ + 7
+000000r 2               VIA1_T2CL  = __VIA1_START__ + 8
+000000r 2               VIA1_T2CH  = __VIA1_START__ + 9
+000000r 2               VIA1_SR    = __VIA1_START__ + 10
+000000r 2               VIA1_ACR   = __VIA1_START__ + 11
+000000r 2               VIA1_PCR   = __VIA1_START__ + 12
+000000r 2               VIA1_IFR   = __VIA1_START__ + 13
+000000r 2               VIA1_IER   = __VIA1_START__ + 14
+000000r 2               VIA1_PANH  = __VIA1_START__ + 15
+000000r 2               
+000000r 2               VIA2_PORTB = __VIA2_START__ + 0
+000000r 2               VIA2_PORTA = __VIA2_START__ + 1
+000000r 2               VIA2_DDRB  = __VIA2_START__ + 2
+000000r 2               VIA2_DDRA  = __VIA2_START__ + 3
+000000r 2               VIA2_T1CL  = __VIA2_START__ + 4
+000000r 2               VIA2_T1CH  = __VIA2_START__ + 5
+000000r 2               VIA2_T1LL  = __VIA2_START__ + 6
+000000r 2               VIA2_T1LH  = __VIA2_START__ + 7
+000000r 2               VIA2_T2CL  = __VIA2_START__ + 8
+000000r 2               VIA2_T2CH  = __VIA2_START__ + 9
+000000r 2               VIA2_SR    = __VIA2_START__ + 10
+000000r 2               VIA2_ACR   = __VIA2_START__ + 11
+000000r 2               VIA2_PCR   = __VIA2_START__ + 12
+000000r 2               VIA2_IFR   = __VIA2_START__ + 13
+000000r 2               VIA2_IER   = __VIA2_START__ + 14
+000000r 2               VIA2_PANH  = __VIA2_START__ + 15
+000000r 2               
+000000r 2               ; Port bits
+000000r 2               VIA_P0 = 1 << 0
+000000r 2               VIA_P1 = 1 << 1
+000000r 2               VIA_P2 = 1 << 2
+000000r 2               VIA_P3 = 1 << 3
+000000r 2               VIA_P4 = 1 << 4
+000000r 2               VIA_P5 = 1 << 5
+000000r 2               VIA_P6 = 1 << 6
+000000r 2               VIA_P7 = 1 << 7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; LED Ports and Pins
+000000r 2               ;
+000000r 2               LED_PORT  = VIA2_PORTA
+000000r 2               PIN_LED = VIA_P0
+000000r 2               
+000000r 2               ;
+000000r 2               ; LCD Port and Pins
+000000r 2               ;
+000000r 2               .if lcd_type=20
+000000r 2                 ; built in 20x4
+000000r 2                 LCD_DDR  = VIA2_DDRA
+000000r 2                 LCD_PORT = VIA2_PORTA
+000000r 2               .elseif lcd_type=40
+000000r 2                 ; test 40x4
+000000r 2                 LCD_DDR  = VIA1_DDRA
+000000r 2                 LCD_PORT = VIA1_PORTA
+000000r 2               .endif
+000000r 2               
+000000r 2               LCD_E2 = VIA_P0
+000000r 2               LCD_RS = VIA_P1
+000000r 2               LCD_RW = VIA_P2
+000000r 2               LCD_E1 = VIA_P3
+000000r 2               LCD_D4 = VIA_P4
+000000r 2               LCD_D5 = VIA_P5
+000000r 2               LCD_D6 = VIA_P6
+000000r 2               LCD_D7 = VIA_P7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; PS/2 Ports and Pins
+000000r 2               ;
+000000r 2               PS2_PORT = VIA2_PORTA
+000000r 2               PS2_DDR  = VIA2_DDRA
+000000r 2               
+000000r 2               PS2_CLK  = VIA_P6
+000000r 2               PS2_DATA = VIA_P7
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; SPI Ports and Pins
+000000r 2               ;
+000000r 2               SPI_PORT = VIA2_PORTB
+000000r 2               SPI_DDR  = VIA2_DDRB
+000000r 2               SPI_SR   = VIA2_SR
+000000r 2               SPI_ACR  = VIA2_ACR
+000000r 2               
+000000r 2               spi_device_sdcard	  = %00011100 ;spi device number 1110??? (SPI_SS1)
+000000r 2               spi_device_ra8875   = %00011010 ;spi device number 1101??? (SPI_SS2)
+000000r 2               spi_device_rtc	  	= %00010110 ;spi device number 1011??? (SPI_SS3)
+000000r 2               spi_device_deselect = %00011110 ; deselect any device
+000000r 2               SDCARD_DETECT			= VIA_P6
+000000r 2               
+000000r 2               
+000000r 2               ;
+000000r 2               ; SNES Ports and Pins
+000000r 2               ;
+000000r 2               SNES_PORT = VIA2_PORTA
+000000r 2               SNES_DDR  = VIA2_DDRA
+000000r 2               
+000000r 2               SNES_CLK   = VIA_P1
+000000r 2               SNES_LATCH = VIA_P2
+000000r 2               SNES_DATA1 = VIA_P3
+000000r 2               SNES_DATA2 = VIA_P4
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               ACIA1_DATA    = __ACIA1_START__ + $00
+000000r 2               ACIA1_STATUS  = __ACIA1_START__ + $01
+000000r 2               ACIA1_COMMAND = __ACIA1_START__ + $02
+000000r 2               ACIA1_CONTROL = __ACIA1_START__ + $03
+000000r 2               
+000000r 2               ; ACIA control register bit values
+000000r 2               ACIA_STOP_BITS_1 = %00000000
+000000r 2               ACIA_STOP_BITS_2 = %10000000
+000000r 2               ACIA_DATA_BITS_8 = %00000000
+000000r 2               ACIA_DATA_BITS_7 = %00100000
+000000r 2               ACIA_DATA_BITS_6 = %01000000
+000000r 2               ACIA_DATA_BITS_5 = %01100000
+000000r 2               ACIA_CLOCK_EXT   = %00000000
+000000r 2               ACIA_CLOCK_INT   = %00010000
+000000r 2               ACIA_BAUD_16XEXT = %00000000
+000000r 2               ACIA_BAUD_50     = %00000001
+000000r 2               ACIA_BAUD_75     = %00000010
+000000r 2               ACIA_BAUD_109    = %00000011
+000000r 2               ACIA_BAUD_134    = %00000100
+000000r 2               ACIA_BAUD_150    = %00000101
+000000r 2               ACIA_BAUD_300    = %00000110
+000000r 2               ACIA_BAUD_600    = %00000111
+000000r 2               ACIA_BAUD_1200   = %00001000
+000000r 2               ACIA_BAUD_1800   = %00001001
+000000r 2               ACIA_BAUD_2400   = %00001010
+000000r 2               ACIA_BAUD_3600   = %00001011
+000000r 2               ACIA_BAUD_4800   = %00001100
+000000r 2               ACIA_BAUD_7200   = %00001101
+000000r 2               ACIA_BAUD_9600   = %00001110
+000000r 2               ACIA_BAUD_19200  = %00001111
+000000r 2               
+000000r 2               ; ACIA command register bit values
+000000r 2               ACIA_PARITY_ODD              = %00000000
+000000r 2               ACIA_PARITY_EVEN             = %01000000
+000000r 2               ACIA_PARITY_MARK             = %10000000
+000000r 2               ACIA_PARITY_SPACE            = %11000000
+000000r 2               ACIA_PARITY_DISABLE          = %00000000
+000000r 2               ACIA_PARITY_ENABLE           = %00100000
+000000r 2               ACIA_ECHO_DISABLE            = %00000000
+000000r 2               ACIA_ECHO_ENABLE             = %00010000
+000000r 2               ACIA_TX_INT_DISABLE_RTS_HIGH = %00000000
+000000r 2               ACIA_TX_INT_ENABLE_RTS_LOW   = %00000100
+000000r 2               ACIA_TX_INT_DISABLE_RTS_LOW  = %00001000
+000000r 2               ACIA_TX_INT_DISABLE_BREAK    = %00001100
+000000r 2               ACIA_RX_INT_ENABLE           = %00000000
+000000r 2               ACIA_RX_INT_DISABLE          = %00000010
+000000r 2               ACIA_DTR_HIGH                = %00000000
+000000r 2               ACIA_DTR_LOW                 = %00000001
+000000r 2               
+000000r 2               ; ACIA status register bit masks
+000000r 2               ACIA_STATUS_IRQ        = 1 << 7
+000000r 2               ACIA_STATUS_DSR        = 1 << 6
+000000r 2               ACIA_STATUS_DCD        = 1 << 5
+000000r 2               ACIA_STATUS_TX_EMPTY   = 1 << 4
+000000r 2               ACIA_STATUS_RX_FULL    = 1 << 3
+000000r 2               ACIA_STATUS_OVERRUN    = 1 << 2
+000000r 2               ACIA_STATUS_FRAME_ERR  = 1 << 1
+000000r 2               ACIA_STATUS_PARITY_ERR = 1 << 0
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               .include "zeropage.inc"
+000000r 2               
+000000r 2               .ifndef ZEROPAGE_INC
+000000r 2               ZEROPAGE_INC = 1
+000000r 2               
+000000r 2               
+000000r 2               .globalzp sp
+000000r 2               .globalzp sreg
+000000r 2               .globalzp regsave
+000000r 2               
+000000r 2               .globalzp tmp1
+000000r 2               .globalzp tmp2
+000000r 2               .globalzp tmp3
+000000r 2               .globalzp tmp4
+000000r 2               .globalzp tmp5
+000000r 2               .globalzp ptr1
+000000r 2               .globalzp ptr2
+000000r 2               .globalzp ptr3
+000000r 2               .globalzp ptr4
+000000r 2               
+000000r 2               .globalzp console_out_ptr
+000000r 2               .globalzp lcd_out_ptr
+000000r 2               .globalzp ra8875_out_ptr
+000000r 2               
+000000r 2               .globalzp zp_sd_address
+000000r 2               .globalzp zp_sd_currentsector
+000000r 2               .globalzp fat32_fatstart
+000000r 2               .globalzp fat32_datastart
+000000r 2               .globalzp fat32_rootcluster
+000000r 2               .globalzp fat32_sectorspercluster
+000000r 2               .globalzp fat32_pendingsectors
+000000r 2               .globalzp fat32_address
+000000r 2               .globalzp fat32_nextcluster
+000000r 2               .globalzp fat32_bytesremaining
+000000r 2               .globalzp fat32_errorstage
+000000r 2               .globalzp fat32_filenamepointer
+000000r 2               
+000000r 2               
+000000r 2               .globalzp DPL
+000000r 2               .globalzp DPH
+000000r 2               
+000000r 2               .globalzp lcd_enable_pins
+000000r 2               .globalzp lcd_row
+000000r 2               .globalzp lcd_column
+000000r 2               
+000000r 2               .globalzp controller1
+000000r 2               .globalzp controller2
+000000r 2               
+000000r 2               .globalzp spi_sr
+000000r 2               .globalzp read_blkptr, write_blkptr
+000000r 2               .globalzp sd_tmp
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               lba_addr 		= $0280		; 4 bytes
+000000r 2               blocks			= $0284		; 3 bytes blocks to read, 3 bytes sufficient to address 4GB -> 4294967296 >> 9 = 8388608 ($800000) max blocks/file
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; last known timestamp with date set to 1970-01-01
+000000r 2               rtc_systime_t = $0300
+000000r 2               
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------------
+000000r 2               ; time struct with date set to 1970-01-01
+000000r 2               .struct time_t
+000000r 2               		  tm_sec	.byte		;0-59
+000000r 2               		  tm_min	.byte		;0-59
+000000r 2               		  tm_hour	.byte		;0-23
+000000r 2               		  tm_wday	.byte		;
+000000r 2               		  tm_mday	.byte		;1-31
+000000r 2               		  tm_mon	.byte	;1	;0-11 0-jan, 11-dec
+000000r 2               		  tm_year	.byte  ;70	;years since 1900
+000000r 2               .endstruct
+000000r 2               
+000000r 2               
+000000r 2               .endif
+000000r 2               
+000000r 1               
+000000r 1               .import delay_ms, convert_to_hex
+000000r 1               
+000000r 1               .export lcd_init
+000000r 1               .export lcd_clear
+000000r 1               .export lcd_print_string
+000000r 1               .export lcd_print_char
+000000r 1               .export lcd_goto
+000000r 1               .export lcd_print_hex
+000000r 1               .export primm_lcd
+000000r 1               
+000000r 1               ; code from https://github.com/dbuchwald/6502/blob/master/Software/common/source/lcd.s
+000000r 1               ; code from https://github.com/grappendorf/homecomputer-6502/blob/master/firmware/lcd.s65
+000000r 1               
+000000r 1               .code
+000000r 1               
+000000r 1                 ; Initializes the LCD display
+000000r 1                 ; IN: Nothing
+000000r 1                 ; OUT: Nothing
+000000r 1                 ; ZP: Nothing
+000000r 1                 lcd_init:
+000000r 1  48               pha
+000001r 1               
+000001r 1                   ; wait 50ms for startup
+000001r 1  A9 32            lda #50
+000003r 1  20 rr rr         jsr delay_ms
+000006r 1               
+000006r 1                   ; https://en.wikipedia.org/wiki/Hitachi_HD44780_LCD_controller
+000006r 1                   ; 3x force to 8bit - 0011 0000 (8bit write)
+000006r 1  A9 30            lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
+000008r 1  20 rr rr         jsr init_write_to_lcd
+00000Br 1  A9 05            lda #5
+00000Dr 1  20 rr rr         jsr delay_ms
+000010r 1  A9 30            lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
+000012r 1  20 rr rr         jsr init_write_to_lcd
+000015r 1  A9 01            lda #1
+000017r 1  20 rr rr         jsr delay_ms
+00001Ar 1  A9 30            lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_8)
+00001Cr 1  20 rr rr         jsr init_write_to_lcd
+00001Fr 1  A9 01            lda #1
+000021r 1  20 rr rr         jsr delay_ms
+000024r 1                   ; set to 4bit - 0010 0000 (8bit write)
+000024r 1  A9 20            lda #(CMD_FUNCTION_SET)
+000026r 1  20 rr rr         jsr init_write_to_lcd
+000029r 1  A9 01            lda #1
+00002Br 1  20 rr rr         jsr delay_ms
+00002Er 1               
+00002Er 1                   ; actual initialization
+00002Er 1  18               clc  ; carry flag cleared = command operation
+00002Fr 1  A9 28            lda #(CMD_FUNCTION_SET | FS_DATA_LENGTH_4 | FS_NUM_LINES_2 | FS_FONT_5X8)
+000031r 1  20 rr rr         jsr write_to_lcd
+000034r 1  A9 0E            lda #(CMD_DISPLAY_CONTROL | DC_DISPLAY_ON | DC_CURSOR_ON)
+000036r 1  20 rr rr         jsr write_to_lcd
+000039r 1  A9 06            lda #(CMD_ENTRY_MODE_SET | EM_CURSOR_INC | EM_SHIFT_CURSOR)
+00003Br 1  20 rr rr         jsr write_to_lcd
+00003Er 1               
+00003Er 1  20 rr rr         jsr lcd_clear
+000041r 1               
+000041r 1  68               pla
+000042r 1  60               rts
+000043r 1               
+000043r 1               
+000043r 1                 ; Prints null terminated string references in ZP pointer "lcd_out_ptr" to LCD
+000043r 1                 ; IN: lcd_out_ptr - ZP pointer to null terminated string
+000043r 1                 ; OUT: Nothing
+000043r 1                 ; ZP: tmp1, tmp2, tmp3 (see write and read)
+000043r 1                 lcd_print_string:
+000043r 1  48               pha          ; save A
+000044r 1  5A               phy          ; save Y
+000045r 1  A0 00            ldy #0         ; start at first byte
+000047r 1                 @loop:
+000047r 1  B1 rr            lda (lcd_out_ptr), y ; get byte at pointer index
+000049r 1  F0 0B            beq @done      ; exit if null character reached
+00004Br 1  38               sec          ; carry flag set = data operation
+00004Cr 1  20 rr rr         jsr write_to_lcd   ; jump to write to output the byte
+00004Fr 1  C8               iny          ; increment to next byre
+000050r 1  20 rr rr         jsr check_line_wrap  ; check character positioning and lines
+000053r 1  4C rr rr         jmp @loop      ; loop
+000056r 1                 @done:
+000056r 1  7A               ply          ; restore Y
+000057r 1  68               pla          ; restore A
+000058r 1  60               rts          ; return
+000059r 1               
+000059r 1               
+000059r 1                 ; Prints byte in A to LCD
+000059r 1                 ; IN: A byte to write
+000059r 1                 ; OUT: Nothing
+000059r 1                 ; ZP: tmp1, tmp2, tmp3 (see write and read)
+000059r 1                 lcd_print_char:
+000059r 1  48               pha         ; save A
+00005Ar 1  38               sec         ; carry flag set = data operation
+00005Br 1  20 rr rr         jsr write_to_lcd  ; jump to write to output the byte
+00005Er 1  20 rr rr         jsr check_line_wrap ; check character positioning and lines
+000061r 1  68               pla         ; restore A
+000062r 1  60               rts         ; return
+000063r 1               
+000063r 1               
+000063r 1                 lcd_print_hex:
+000063r 1  48               pha
+000064r 1  DA               phx
+000065r 1  5A               phy
+000066r 1  20 rr rr         jsr convert_to_hex
+000069r 1  8A               txa
+00006Ar 1  20 rr rr         jsr lcd_print_char
+00006Dr 1  98               tya
+00006Er 1  20 rr rr         jsr lcd_print_char
+000071r 1  7A               ply
+000072r 1  FA               plx
+000073r 1  68               pla
+000074r 1  60               rts
+000075r 1               
+000075r 1                 ; Clears the LCD
+000075r 1                 ; IN: Nothing
+000075r 1                 ; OUT: Nothing
+000075r 1                 ; ZP: tmp1, tmp2, tmp3 (see write and read)
+000075r 1                 lcd_clear:
+000075r 1  48               pha            ; save A
+000076r 1  A9 01            lda #(CMD_CLEAR_DISPLAY) ; load the clear command
+000078r 1  18               clc            ; carry flag cleared = command operation
+000079r 1  20 rr rr         jsr write_to_lcd     ; jump to write to output the byte
+00007Cr 1  68               pla            ; restore A
+00007Dr 1  60               rts            ; return
+00007Er 1               
+00007Er 1               
+00007Er 1                 ; Goes to positon specified in X and Y registers
+00007Er 1                 ; IN: X - column, Y - row
+00007Er 1                 ; OUT: Nothing
+00007Er 1                 ; ZP: tmp1, tmp2, tmp3 (see write and read)
+00007Er 1                 lcd_goto:
+00007Er 1  48               pha             ; save A
+00007Fr 1  8A               txa             ; move X in to A
+000080r 1  18               clc             ; clear carry - why?
+000081r 1  79 rr rr         adc row_offsets, y    ; add in the row length offset from the row Y
+000084r 1  18               clc             ; clear carry - why?
+000085r 1  09 80            ora #(CMD_SET_DDRAM_ADDR) ; add in command
+000087r 1  18               clc             ; carry flag cleared = command operation
+000088r 1  20 rr rr         jsr write_to_lcd      ; jump to write to output the byte
+00008Br 1  68               pla             ; restore A
+00008Cr 1  60               rts             ; return
+00008Dr 1               
+00008Dr 1               
+00008Dr 1               
+00008Dr 1               
+00008Dr 1                 ; http://6502.org/source/io/primm.htm
+00008Dr 1                 primm_lcd:
+00008Dr 1  68               pla         ; get low part of (string address-1)
+00008Er 1  85 rr            sta   DPL
+000090r 1  68               pla         ; get high part of (string address-1)
+000091r 1  85 rr            sta   DPH
+000093r 1  80 03            bra   @primm3
+000095r 1                 @primm2:
+000095r 1  20 rr rr         jsr   lcd_print_char    ; output a string char
+000098r 1                 @primm3:
+000098r 1  E6 rr            inc   DPL     ; advance the string pointer
+00009Ar 1  D0 02            bne   @primm4
+00009Cr 1  E6 rr            inc   DPH
+00009Er 1                 @primm4:
+00009Er 1  B2 rr            lda   (DPL)     ; get string char
+0000A0r 1  D0 F3            bne   @primm2    ; output and continue if not NUL
+0000A2r 1  A5 rr            lda   DPH
+0000A4r 1  48               pha
+0000A5r 1  A5 rr            lda   DPL
+0000A7r 1  48               pha
+0000A8r 1  60               rts         ; proceed at code following the NUL
+0000A9r 1               
+0000A9r 1               
+0000A9r 1                 ; Called after a byte is written to LCD bus. Part of write operation is a read that will have LCD's address counter in A. Checks to see if counter is on line break and addjust address accordingly.
+0000A9r 1                 ; IN:
+0000A9r 1                 ; OUT:
+0000A9r 1                 ; ZP:
+0000A9r 1                 check_line_wrap:
+0000A9r 1  48               pha             ; save A
+0000AAr 1  DA               phx             ; save X
+0000ABr 1  A2 00            ldx #0            ;
+0000ADr 1                 @loop:
+0000ADr 1  DD rr rr         cmp lcd_wordwrap_sources, x ;
+0000B0r 1  F0 07            beq @line_wrap        ;
+0000B2r 1  E8               inx             ;
+0000B3r 1  E0 04            cpx #4            ; rows
+0000B5r 1  F0 0B            beq @no_wrap        ;
+0000B7r 1  80 F4            bra @loop           ;
+0000B9r 1                 @line_wrap:
+0000B9r 1  BD rr rr         lda lcd_wordwrap_targets, x ;
+0000BCr 1  09 80            ora #(CMD_SET_DDRAM_ADDR)   ; add in command
+0000BEr 1  18               clc             ; carry flag cleared = command operation
+0000BFr 1  20 rr rr         jsr write_to_lcd      ; jump to write to output the byte
+0000C2r 1                 @no_wrap:
+0000C2r 1  FA               plx             ; restore X
+0000C3r 1  68               pla             ; restore A
+0000C4r 1  60               rts             ; return
+0000C5r 1               
+0000C5r 1               
+0000C5r 1                 ; Writes the byte to the LCD bus, preserving VIA pins
+0000C5r 1                 ; IN:
+0000C5r 1                 ;  A - command byte to write
+0000C5r 1                 ;  CLC - command
+0000C5r 1                 ;  SEC - data
+0000C5r 1                 ; OUT: Nothing
+0000C5r 1                 ; ZP:
+0000C5r 1                 ;  tmp1 - temp storage for input data
+0000C5r 1                 ;  tmp2 - temp storage for commands and other pins
+0000C5r 1                 write_to_lcd:
+0000C5r 1  85 rr            sta tmp1             ; save A to tmp1
+0000C7r 1  B0 06            bcs @write_data        ; if carry set, branch to data commands
+0000C9r 1  A9 00            lda #(LCD_WRITE | LCD_COMMAND) ; else set command write
+0000CBr 1  85 rr            sta tmp2             ; save commands to tmp2
+0000CDr 1  80 04            bra @write_internal
+0000CFr 1                 @write_data:
+0000CFr 1  A9 02            lda #(LCD_WRITE | LCD_DATA)  ; set data write
+0000D1r 1  85 rr            sta tmp2             ; save commands to tmp2
+0000D3r 1               
+0000D3r 1                 @write_internal:
+0000D3r 1                   ; set the pins to output, keeping pin 0 what is is set to (though should always be output?)
+0000D3r 1  AD rr rr         lda LCD_DDR
+0000D6r 1                   ;ora #%11111110
+0000D6r 1  09 FE            ora #(LCD_RS | LCD_RW | LCD_E1 | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7)
+0000D8r 1  8D rr rr         sta LCD_DDR
+0000DBr 1               
+0000DBr 1                   ; save off current state of pin 0
+0000DBr 1  AD rr rr         lda LCD_PORT         ; load current data on port
+0000DEr 1  29 01            and #%00000001         ; save off state of pin 0
+0000E0r 1  05 rr            ora tmp2             ; add commnads to data
+0000E2r 1  85 rr            sta tmp2             ; store back to tmp2
+0000E4r 1               
+0000E4r 1                   ; process MSB
+0000E4r 1  A5 rr            lda tmp1             ; load tmp1 to A (which was A when entering subroutine)
+0000E6r 1  29 F0            and #%11110000         ; mask msb
+0000E8r 1  05 rr            ora tmp2             ; add the commands in
+0000EAr 1  8D rr rr         sta LCD_PORT         ; send first 4 bits
+0000EDr 1                   ; toggle ENABLE
+0000EDr 1  09 08            ora #(LCD_E1)        ; add enable
+0000EFr 1  8D rr rr         sta LCD_PORT
+0000F2r 1  49 08            eor #(LCD_E1)        ; remove enable
+0000F4r 1  8D rr rr         sta LCD_PORT
+0000F7r 1               
+0000F7r 1                   ; process LSB
+0000F7r 1  A5 rr            lda tmp1             ; load tmp1 to A (which was A when entering subroutine)
+0000F9r 1  29 0F            and #%00001111         ; mask lsb
+0000FBr 1  0A               asl              ; shift left 4 times
+0000FCr 1  0A               asl
+0000FDr 1  0A               asl
+0000FEr 1  0A               asl
+0000FFr 1  05 rr            ora tmp2             ; add the commands in
+000101r 1  8D rr rr         sta LCD_PORT         ; send first 4 bits
+000104r 1                   ; toggle ENABLE
+000104r 1  09 08            ora #(LCD_E1)        ; add enable
+000106r 1  8D rr rr         sta LCD_PORT
+000109r 1  49 08            eor #(LCD_E1)        ; remove enable
+00010Br 1  8D rr rr         sta LCD_PORT
+00010Er 1               
+00010Er 1                 @wait_for_busy:          ; wait for busy flag to not be set
+00010Er 1  18               clc              ; carry flag clear = command operation
+00010Fr 1  20 rr rr         jsr read_from_lcd        ; jupm to read subroutine
+000112r 1  30 FA            bmi @wait_for_busy       ; loop until bit7/BusyFlag is set
+000114r 1  60               rts              ; return
+000115r 1               
+000115r 1               
+000115r 1                 ; Reads byte from LCD bus, preserving VIA pins. Bit 7 is BF and reset is LCD address counter
+000115r 1                 ; IN:
+000115r 1                 ;  CLC - command
+000115r 1                 ;  SEC - data
+000115r 1                 ; OUT: A - the byte read where bit 7 is busy flag and the rest is the address counter in the LCD, used for knowing cursor location
+000115r 1                 ; ZP:
+000115r 1                 ;  tmp1 - temp storage for commands and other pins
+000115r 1                 ;  tmp2 - temp storage for MSB
+000115r 1                 ;  tmp3 - temp storage for LSB
+000115r 1                 read_from_lcd:
+000115r 1  B0 06            bcs @read_data        ; if carry set, branch to data commands
+000117r 1  A9 04            lda #(LCD_READ | LCD_COMMAND) ; else set command read
+000119r 1  85 rr            sta tmp1            ; save commands to tmp1
+00011Br 1  80 04            bra @read_internal
+00011Dr 1                 @read_data:
+00011Dr 1  A9 06            lda #(LCD_READ | LCD_DATA)  ; set data read
+00011Fr 1  85 rr            sta tmp1            ; save commands to tmp1
+000121r 1                 @read_internal:
+000121r 1                   ; preserve direction of last 4 DDRA and change data lines to input, keeping pin 0 what is is set to (though should always be output?)
+000121r 1  AD rr rr         lda LCD_DDR
+000124r 1  29 01            and #%00000001
+000126r 1  09 0E            ora #%00001110
+000128r 1  8D rr rr         sta LCD_DDR
+00012Br 1               
+00012Br 1                   ; read MSBs
+00012Br 1  AD rr rr         lda LCD_PORT        ; load current data on port
+00012Er 1  29 01            and #%00000001        ; save off state of pin 0
+000130r 1  05 rr            ora tmp1            ; add the commands in
+000132r 1  8D rr rr         sta LCD_PORT
+000135r 1               
+000135r 1  09 08            ora #(LCD_E1)       ; add enable
+000137r 1  8D rr rr         sta LCD_PORT
+00013Ar 1               
+00013Ar 1  AD rr rr         lda LCD_PORT        ; read result
+00013Dr 1  29 F0            and #%11110000        ; mask
+00013Fr 1  85 rr            sta tmp2            ; store data
+000141r 1               
+000141r 1  AD rr rr         lda LCD_PORT
+000144r 1  49 08            eor #(LCD_E1)       ; remove enable
+000146r 1  8D rr rr         sta LCD_PORT
+000149r 1               
+000149r 1                   ; read LSBs
+000149r 1                   ;lda LCD_PORT ; load current data on port
+000149r 1  29 01            and #%00000001        ; save off state of pin 0
+00014Br 1  05 rr            ora tmp1            ; add the commands in
+00014Dr 1  8D rr rr         sta LCD_PORT
+000150r 1               
+000150r 1  09 08            ora #(LCD_E1)       ; add enable
+000152r 1  8D rr rr         sta LCD_PORT
+000155r 1               
+000155r 1  AD rr rr         lda LCD_PORT
+000158r 1  85 rr            sta tmp3
+00015Ar 1               
+00015Ar 1  49 08            eor #(LCD_E1)       ; remove enable
+00015Cr 1  8D rr rr         sta LCD_PORT
+00015Fr 1               
+00015Fr 1                   ; put result from tmp2 and tmp3 in to A
+00015Fr 1  85 rr            sta tmp3            ; LSB from tmp3
+000161r 1  29 F0            and #%11110000        ; mask
+000163r 1  4A               lsr               ; shit right 4 times
+000164r 1  4A               lsr
+000165r 1  4A               lsr
+000166r 1  4A               lsr
+000167r 1  05 rr            ora tmp2            ; MSB from tmp2
+000169r 1               
+000169r 1  60               rts               ; return
+00016Ar 1               
+00016Ar 1               
+00016Ar 1                 ; Used in the initial force initialization routines
+00016Ar 1                 ; IN: A - command byte to write
+00016Ar 1                 ; OUT: Nothing
+00016Ar 1                 ; ZP: tmp1 - temp storage for input data
+00016Ar 1                 init_write_to_lcd:
+00016Ar 1  85 rr            sta tmp1      ; save A to tmp1
+00016Cr 1  AD rr rr         lda LCD_PORT  ; load current data on port
+00016Fr 1  29 01            and #%00000001  ; save off state of pin 0
+000171r 1  05 rr            ora tmp1      ; add commands to data
+000173r 1  09 08            ora #(LCD_E1) ; add enable
+000175r 1  8D rr rr         sta LCD_PORT  ; write
+000178r 1  49 08            eor #(LCD_E1) ; remove enable
+00017Ar 1  8D rr rr         sta LCD_PORT  ; write
+00017Dr 1  60               rts         ; return
+00017Er 1               
+00017Er 1               
+00017Er 1               .rodata
+000000r 1                 ;https://github.com/dbuchwald/6502/blob/master/Software/common/source/lcd4bit.s
+000000r 1                 ;https://github.com/grappendorf/homecomputer-6502/blob/748c43e96795b9f0a5946ac8117e01654bb7794e/firmware/lcd.s65
+000000r 1               
+000000r 1                 LCD_READ =    %00000100
+000000r 1                 LCD_WRITE =   %00000000
+000000r 1                 LCD_DATA =    %00000010
+000000r 1                 LCD_COMMAND = %00000000
+000000r 1               
+000000r 1                 CMD_CLEAR_DISPLAY    = %00000001
+000000r 1                 CMD_RETURN_HOME      = %00000010
+000000r 1                 CMD_ENTRY_MODE_SET   = %00000100
+000000r 1                 CMD_DISPLAY_CONTROL  = %00001000
+000000r 1                 CMD_CURSOR_SHIFT     = %00010000
+000000r 1                 CMD_FUNCTION_SET     = %00100000
+000000r 1                 CMD_SET_CGRAM_ADDR   = %01000000
+000000r 1                 CMD_SET_DDRAM_ADDR   = %10000000
+000000r 1               
+000000r 1                 EM_SHIFT_CURSOR  = %00000000
+000000r 1                 EM_SHIFT_DISPLAY = %00000001
+000000r 1                 EM_CURSOR_DEC    = %00000000
+000000r 1                 EM_CURSOR_INC    = %00000010
+000000r 1               
+000000r 1                 DC_CURSOR_BLINK  = %00000001
+000000r 1                 DC_CURSOR_OFF    = %00000000
+000000r 1                 DC_CURSOR_ON     = %00000010
+000000r 1                 DC_DISPLAY_OFF   = %00000000
+000000r 1                 DC_DISPLAY_ON    = %00000100
+000000r 1               
+000000r 1                 CS_SHIFT_LEFT    = %00000000
+000000r 1                 CS_SHIFT_RIGHT   = %00000100
+000000r 1                 CS_CURSOR_MOVE   = %00000000
+000000r 1                 CS_DISPLAY_SHIFT = %00001000
+000000r 1               
+000000r 1                 FS_FONT_5X8      = %00000000
+000000r 1                 FS_FONT_5X10     = %00000100
+000000r 1                 FS_NUM_LINES_1   = %00000000
+000000r 1                 FS_NUM_LINES_2   = %00001000
+000000r 1                 FS_DATA_LENGTH_4 = %00000000
+000000r 1                 FS_DATA_LENGTH_8 = %00010000
+000000r 1               
+000000r 1                 ;http://forum.6502.org/viewtopic.php?f=4&t=5336&p=64722&hilit=hd44780+memory#p64722
+000000r 1  00 40 14 54    row_offsets:       .byte $00, $40, $14, $54
+000004r 1               
+000004r 1  14 54 40 00    lcd_wordwrap_sources:  .byte 20, $40+20, $40, 00
+000008r 1  40 14 54 00    lcd_wordwrap_targets:  .byte $40, 20, $40+20, 00
+00000Br 1               

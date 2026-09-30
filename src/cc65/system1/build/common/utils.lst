@@ -1,0 +1,111 @@
+ca65 V2.19 - Git cc3c40c
+Main file   : ../common/source/utils.s
+Current file: ../common/source/utils.s
+
+000000r 1               
+000000r 1               .export delay_ms, convert_to_hex
+000000r 1               .import console_write_byte, lcd_print_char
+000000r 1               
+000000r 1               
+000000r 1               
+000000r 1               .code
+000000r 1               
+000000r 1                 ; _convert_to_hex: Converts the value in A to hex by putting MSB in X and LSB in Y
+000000r 1                 ; https://github.com/dbuchwald/6502/blob/master/Software/common/source/utils.s
+000000r 1                 ; IN: A - the value to convert to hex
+000000r 1                 ; OUT: X - MSB, Y- LSB
+000000r 1                 ; ZP: Nothing
+000000r 1                 convert_to_hex:
+000000r 1  48               pha        ; save A
+000001r 1  48               pha        ; save A for use in MSB
+000002r 1  29 0F            and #%00001111   ; mask off MSB
+000004r 1  AA               tax        ; transfer A to X for use in lookup indexing
+000005r 1  BC rr rr         ldy hex_table, x ; store the value from lookup table to Y
+000008r 1  68               pla        ; restore A for MSB
+000009r 1  4A               lsr        ; shift 4 times
+00000Ar 1  4A               lsr
+00000Br 1  4A               lsr
+00000Cr 1  4A               lsr
+00000Dr 1  AA               tax        ; transfer A to X for use in lookup indexing
+00000Er 1  BD rr rr         lda hex_table, x ; load value from table in to A
+000011r 1  AA               tax        ; transfer A to X (cannot do this  directly since X is being used above)
+000012r 1  68               pla        ; restore A
+000013r 1  60               rts        ; return
+000014r 1               
+000014r 1               
+000014r 1               
+000014r 1                 ; ;1 Mhz version
+000014r 1                 ; ;http://forum.6502.org/viewtopic.php?f=12&t=5254#p62595
+000014r 1                 ; ; ---------------------------------------------------------------------------
+000014r 1                 ; ; Delay 5us
+000014r 1                 ; ; there's an additional 15us overhead for each call, so the
+000014r 1                 ; ; minimum delay is 20us with increments of 5us. The formula is:
+000014r 1                 ; ; duration = 5*a + 15, where "a" is the value in the accumulator
+000014r 1                 ; ; note a value of zero in "a" is treated as 256, not zero!
+000014r 1                 ; delay_5us:
+000014r 1                 ;   nop
+000014r 1                 ;   tax
+000014r 1                 ;   delay_5us_loop:
+000014r 1                 ;   dex
+000014r 1                 ;   bne delay_5us_loop
+000014r 1                 ;   rts
+000014r 1               
+000014r 1                 ; ; ---------------------------------------------------------------------------
+000014r 1                 ; ; Delay ms
+000014r 1                 ; delay_ms:
+000014r 1                 ;   phy
+000014r 1                 ;   phx
+000014r 1                 ;   tay
+000014r 1                 ;   lda #196              ; 196*5 + 15 = 995 (dey&bne take 5 cycles)
+000014r 1                 ;   delay_ms_loop1:
+000014r 1                 ;   jsr delay_5us
+000014r 1                 ;   dey
+000014r 1                 ;   bne delay_ms_loop1
+000014r 1                 ;   plx
+000014r 1                 ;   ply
+000014r 1                 ;   rts
+000014r 1               
+000014r 1                 ;4Mhz version
+000014r 1                 ;http://forum.6502.org/viewtopic.php?f=12&t=5254&hilit=HD44780&start=15#p62993
+000014r 1                 ; ---------------------------------------------------------------------------
+000014r 1                 ; Delay's based on 4MHz 65C02 CPU
+000014r 1                 ;
+000014r 1                 ; Delay 4us
+000014r 1                 ; there's an additional 3us overhead for each call, so the
+000014r 1                 ; minimum delay is 7us with increments of 4us. The formula is:
+000014r 1                 ; duration = 4*a + 3, where "a" is the value in the accumulator
+000014r 1                 ; note a value of zero in "a" is treated as 256, not zero!
+000014r 1                 ; range is from 7us to 1027us
+000014r 1                 delay_4us:    ; 6 jsr
+000014r 1  AA               tax     ; 2
+000015r 1                 delay_4us_loop:
+000015r 1  48               pha     ; 3
+000016r 1  68               pla     ; 4
+000017r 1  EA               nop     ; 2
+000018r 1  EA               nop     ; 2
+000019r 1  CA               dex     ; 2
+00001Ar 1  D0 F9            bne delay_4us_loop  ; 2/3
+00001Cr 1  60               rts     ; 6
+00001Dr 1               
+00001Dr 1                 ; ---------------------------------------------------------------------------
+00001Dr 1                 ; Delay ms
+00001Dr 1                 ;
+00001Dr 1                 delay_ms:
+00001Dr 1  DA               phx
+00001Er 1  5A               phy
+00001Fr 1  A8               tay
+000020r 1  A9 F9            lda #249              ; 249*4 + 3 = 999
+000022r 1                 delay_ms_loop1:
+000022r 1  20 rr rr         jsr delay_4us
+000025r 1  88               dey
+000026r 1  D0 FA            bne delay_ms_loop1
+000028r 1  7A               ply
+000029r 1  FA               plx
+00002Ar 1  60               rts
+00002Br 1               
+00002Br 1               
+00002Br 1               .rodata
+000000r 1  30 31 32 33    hex_table: .byte "0123456789ABCDEF"
+000004r 1  34 35 36 37  
+000008r 1  38 39 41 42  
+000010r 1               
